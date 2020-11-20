@@ -121,7 +121,8 @@ protos: ## Generats gRPC proto clients
 	  --go_out=pkg/proto/v1 \
 	  --go_opt=paths=source_relative \
 	  --go-grpc_out=pkg/proto/v1 \
-	  --go-grpc_opt=paths=source_relative
+	  --go-grpc_opt=paths=source_relative \
+	  --grpc-gateway_out=pkg/proto/v1
 
 .PHONY: test  
 help: ## Display available commands
