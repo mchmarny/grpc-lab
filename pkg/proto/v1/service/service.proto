@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package thingz.proto.v1;
+
+option go_package = "github.com/mchmarny/grpc-lab/pkg/proto/v1;service";
+
+// Service provides APIs to user application to access the service.
+service Service {
+  // Ping method on the service.
+  rpc Ping(PingRequest) returns (PingResponse) {}
+}
+
+// PingRequest represents the request message for Ping invocation.
+message PingRequest {
+  // Required. Represents request ID
+  string id = 1;
+
+  // Required. Represents message content 
+  string message = 2;
+
+  // Optional. Represents message metadata
+  map<string,string> metadata = 3;
+}
+
+// GetStateRequest is the message to get key-value states from specific state store.
+message PingResponse {
+  // Required. Represents request ID
+  string id = 1;
+
+  // Required. Represents message content 
+  string message = 2;
+
+  // Required. Represents message reversed
+  string reversed = 3;
+}
