@@ -16,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/reflection"
 )
 
 var (
@@ -102,6 +103,7 @@ func startServer(lis net.Listener) error {
 
 	srv := &pingServer{}
 	grpcServer := grpc.NewServer(opts...)
+	reflection.Register(grpcServer)
 	pb.RegisterServiceServer(grpcServer, srv)
 
 	log.Infof("starting gRPC server: %s", lis.Addr().String())

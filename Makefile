@@ -1,7 +1,7 @@
 RELEASE_VERSION   =v0.0.1
 APP_NAME         ?=demo
 HOST_NAME        ?=grpc.thingz.io
-SERVER_ADDRESS   ?=:50505
+SERVER_ADDRESS   ?=0.0.0.0:50505
 
 .PHONY: all 
 all: test
@@ -85,6 +85,17 @@ client-tls: tidy ## Starts the Ping client with TLS cert
 	  --cert=certs/client-cert.pem \
 	  --key=certs/client-key.pem \
 	  --debug=true
+
+.PHONY: call
+call: ## Lists processes using the app addresss
+	grpcurl \
+	 -d '{"id":"id1", "message":"hello"}' \
+	 -authority="${APP_NAME}.${HOST_NAME}" \
+	 -cacert=certs/ca-cert.pem \
+	 -cert=certs/client-cert.pem \
+	 -key=certs/client-key.pem \
+	 $(SERVER_ADDRESS) \
+	 io.thingz.grpc.v1.Service/Ping
 
 .PHONY: pids
 pids: ## Lists processes using the app addresss
