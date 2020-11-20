@@ -8,9 +8,10 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"sync"
 
 	"github.com/mchmarny/grpc-lab/pkg/id"
-	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1/service"
+	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -23,6 +24,9 @@ var (
 	keyPath  = flag.String("key", "", "Path to TLS key file")
 	address  = flag.String("address", ":50505", "The server address")
 	debug    = flag.Bool("debug", false, "Verbose logging")
+
+	messageCount uint64
+	lock         sync.Mutex
 )
 
 type pingServer struct {
@@ -34,10 +38,16 @@ func (s *pingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.Pin
 		return nil, errors.New("nil request")
 	}
 	log.Infof("%+v", req)
+
+	lock.Lock()
+	messageCount++
+	lock.Unlock()
+
 	res = &pb.PingResponse{
 		Id:       id.NewID(),
 		Message:  req.Message,
 		Reversed: reverse(req.Message),
+		Count:    messageCount,
 	}
 	return
 }

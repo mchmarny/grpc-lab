@@ -116,9 +116,12 @@ clean: ## Cleans go and generated files
 
 .PHONY: protos 
 protos: ## Generats gRPC proto clients
-	protoc --go_out=. --go_opt=paths=source_relative \
-	  --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-	  pkg/proto/v1/service/service.proto
+	protoc \
+	  --proto_path=proto proto/*.proto \
+	  --go_out=pkg/proto/v1 \
+	  --go_opt=paths=source_relative \
+	  --go-grpc_out=pkg/proto/v1 \
+	  --go-grpc_opt=paths=source_relative
 
 .PHONY: test  
 help: ## Display available commands

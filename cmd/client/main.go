@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/mchmarny/grpc-lab/pkg/id"
-	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1/service"
+	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -68,7 +68,7 @@ func start(ctx context.Context, client pb.ServiceClient) {
 			continue
 		}
 
-		fmt.Printf("%v\n", resp.Reversed)
+		fmt.Printf("%v - #%d\n", resp.Reversed, resp.Count)
 		fmt.Println()
 		msg = ""
 	}

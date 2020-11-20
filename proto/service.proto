@@ -1,8 +1,10 @@
 syntax = "proto3";
 
-package thingz.proto.v1;
+package grpc.thingz.v1;
 
-option go_package = "github.com/mchmarny/grpc-lab/pkg/proto/v1;service";
+option go_package = ".;v1";
+
+
 
 // Service provides APIs to user application to access the service.
 service Service {
@@ -20,16 +22,21 @@ message PingRequest {
 
   // Optional. Represents message metadata
   map<string,string> metadata = 3;
+
 }
 
 // GetStateRequest is the message to get key-value states from specific state store.
 message PingResponse {
-  // Required. Represents request ID
+  // Represents request ID
   string id = 1;
 
-  // Required. Represents message content 
+  // Represents message content 
   string message = 2;
 
-  // Required. Represents message reversed
+  // Represents message reversed
   string reversed = 3;
+
+  // Represents the count of messages
+  uint64 count = 4;
+
 }
