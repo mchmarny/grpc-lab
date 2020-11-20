@@ -3,22 +3,19 @@ package main
 import (
 	"bufio"
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
 
+	"github.com/mchmarny/grpc-lab/pkg/creds"
 	"github.com/mchmarny/grpc-lab/pkg/id"
 	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -31,11 +28,31 @@ var (
 	debug    = flag.Bool("debug", false, "Verbose logging")
 )
 
-func start(ctx context.Context, client pb.ServiceClient) {
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Split(bufio.ScanBytes)
+func start(ctx context.Context, target, clientID string, c *creds.Config) error {
+	if c == nil {
+		return errors.New("config required")
+	}
+	transportOption := grpc.WithInsecure()
+	if c.HasCerts() {
+		creds, err := creds.GetClientCredentials(c)
+		if err != nil {
+			return errors.Wrapf(err, "error getting credentials (cert:%s, key:%s)", c.Cert, c.Key)
+		}
+		transportOption = grpc.WithTransportCredentials(creds)
+	}
+
+	log.Infof("dialing: %s...)", target)
+	conn, err := grpc.Dial(target, transportOption)
+	if err != nil {
+		return errors.Wrap(err, "error dialling")
+	}
+	defer conn.Close()
+	log.Info("connected")
 
 	var msg string
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Split(bufio.ScanBytes)
+	client := pb.NewServiceClient(conn)
 
 	for {
 		fmt.Print("message (enter to exit): ")
@@ -47,15 +64,16 @@ func start(ctx context.Context, client pb.ServiceClient) {
 			}
 		}
 		if strings.TrimSpace(msg) == "" {
-			break
+			return nil
 		}
 
 		req := &pb.PingRequest{
 			Id:      id.NewID(),
 			Message: msg,
 			Metadata: map[string]string{
-				"client-id":  *clientID,
+				"client-id":  clientID,
 				"created-on": time.Now().UTC().Format(time.RFC3339),
+				"host":       c.Host,
 			},
 		}
 
@@ -74,36 +92,6 @@ func start(ctx context.Context, client pb.ServiceClient) {
 	}
 }
 
-func getCredentials() (credentials.TransportCredentials, error) {
-	if *certPath == "" || *keyPath == "" || *caPath == "" {
-		return nil, errors.New("missing certificates")
-	}
-
-	ca, err := ioutil.ReadFile(*caPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading ca file: %s", *caPath)
-	}
-
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(ca) {
-		return nil, errors.New("error adding client CA")
-	}
-
-	clientCert, err := tls.LoadX509KeyPair(*certPath, *keyPath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the credentials and return it
-	config := &tls.Config{
-		Certificates: []tls.Certificate{clientCert},
-		RootCAs:      certPool,
-		ServerName:   *host,
-	}
-
-	return credentials.NewTLS(config), nil
-}
-
 func main() {
 	flag.Parse()
 	log.SetFormatter(&log.JSONFormatter{})
@@ -113,34 +101,23 @@ func main() {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	transportOption := grpc.WithInsecure()
-	if *caPath != "" {
-		creds, err := getCredentials()
-		if err != nil {
-			log.Fatalf("error getting credentials (cert:%s, key:%s) %v", *certPath, *keyPath, err)
-		}
-
-		transportOption = grpc.WithTransportCredentials(creds)
-	}
-
-	log.Infof("dialing: %s...)", *address)
-	conn, err := grpc.Dial(*address, transportOption)
-	if err != nil {
-		log.Fatalf("error dialling: %v", err)
-	}
-	defer conn.Close()
-	log.Infof("connected")
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		<-c
+		<-sigCh
 		cancel()
 		os.Exit(0)
 	}()
 
-	start(ctx, pb.NewServiceClient(conn))
+	c := &creds.Config{
+		CA:   *caPath,
+		Cert: *certPath,
+		Key:  *keyPath,
+		Host: *host,
+	}
+
+	start(ctx, *address, *clientID, c)
 	log.Info("done")
 }

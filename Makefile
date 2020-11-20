@@ -1,7 +1,7 @@
 RELEASE_VERSION   =v0.0.1
 APP_NAME         ?=demo
 HOST_NAME        ?=grpc.thingz.io
-SERVER_ADDRESS   ?=0.0.0.0:50505
+SERVER_ADDRESS   ?=:50505
 
 .PHONY: all 
 all: test
@@ -25,7 +25,7 @@ certs: ## Updates the go modules
 	  -CAkey certs/ca-key.pem \
 	  -CAcreateserial \
 	  -out certs/server-cert.pem \
-	  -extfile certs/cert.cnf
+	  -extfile cert.cnf
 	openssl x509 -in certs/server-cert.pem -noout -text
 	# client 
 	openssl req -newkey rsa:4096 -nodes \
@@ -38,7 +38,7 @@ certs: ## Updates the go modules
 	  -CAkey certs/ca-key.pem \
 	  -CAcreateserial \
 	  -out certs/client-cert.pem \
-	  -extfile certs/cert.cnf
+	  -extfile cert.cnf
 	openssl x509 -in certs/client-cert.pem -noout -text
 
 .PHONY: tidy 
@@ -79,7 +79,7 @@ client-tls: tidy ## Starts the Ping client with TLS cert
 	GRPC_VERBOSITY=debug GRPC_TRACE=tcp,http,api \
 	go run cmd/client/main.go \
 	  --address=$(SERVER_ADDRESS) \
-	  --host="${APP_NAME}.${HOST_NAME}" \
+	  --host="${HOST_NAME}" \
 	  --client="${APP_NAME}-client" \
 	  --ca=certs/ca-cert.pem \
 	  --cert=certs/client-cert.pem \

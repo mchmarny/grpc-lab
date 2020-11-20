@@ -2,20 +2,19 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"flag"
-	"io/ioutil"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
 
+	"github.com/mchmarny/grpc-lab/pkg/creds"
 	"github.com/mchmarny/grpc-lab/pkg/id"
 	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
+	"github.com/mchmarny/grpc-lab/pkg/string"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -27,13 +26,43 @@ var (
 	debug    = flag.Bool("debug", false, "Verbose logging")
 )
 
-type pingServer struct {
+// PingServer represents the server that responds to pings
+type PingServer struct {
 	pb.UnimplementedServiceServer
 	messageCount uint64
 	lock         sync.Mutex
+	listener     net.Listener
+	config       *creds.Config
 }
 
-func (s *pingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.PingResponse, err error) {
+// Start starts the ping server
+func (s *PingServer) Start(ctx context.Context) error {
+	opts := []grpc.ServerOption{}
+	if s.config.HasCerts() {
+		creds, err := creds.GetServerCredentials(s.config)
+		if err != nil {
+			return errors.Wrapf(err, "error getting credentials (%+v): %v", s.config, err)
+		}
+		opts = append(opts, grpc.Creds(creds))
+	}
+
+	grpcServer := grpc.NewServer(opts...)
+	reflection.Register(grpcServer)
+	pb.RegisterServiceServer(grpcServer, s)
+
+	log.Infof("starting gRPC server: %s", s.listener.Addr().String())
+	return grpcServer.Serve(s.listener)
+}
+
+// Close closes ping server
+func (s *PingServer) Close() {
+	if err := s.listener.Close(); err != nil {
+		log.Warnf("error closing ping server: %v", err)
+	}
+}
+
+// Ping performs ping
+func (s *PingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.PingResponse, err error) {
 	if req == nil {
 		return nil, errors.New("nil request")
 	}
@@ -46,68 +75,10 @@ func (s *pingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.Pin
 	res = &pb.PingResponse{
 		Id:       id.NewID(),
 		Message:  req.Message,
-		Reversed: reverse(req.Message),
+		Reversed: string.ReverseString(req.Message),
 		Count:    s.messageCount,
 	}
 	return
-}
-
-func reverse(s string) string {
-	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-	return string(runes)
-}
-
-func getCredentials() (credentials.TransportCredentials, error) {
-	if *certPath == "" || *keyPath == "" || *caPath == "" {
-		return nil, errors.New("missing certificates")
-	}
-
-	log.Infof("using TLS (ca:%s, cert:%s, key:%s)", *caPath, *certPath, *keyPath)
-
-	ca, err := ioutil.ReadFile(*caPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading ca file: %s", *caPath)
-	}
-
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(ca) {
-		return nil, errors.New("error adding client CA")
-	}
-
-	serverCert, err := tls.LoadX509KeyPair(*certPath, *keyPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error loading cert (%s) and key files (%s)", *certPath, *keyPath)
-	}
-
-	config := &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    certPool,
-	}
-
-	return credentials.NewTLS(config), nil
-}
-
-func startServer(lis net.Listener) error {
-	opts := []grpc.ServerOption{}
-	if *certPath != "" && *keyPath != "" {
-		creds, err := getCredentials()
-		if err != nil {
-			return errors.Wrapf(err, "error getting credentials (cert:%s, key:%s) %v", *certPath, *keyPath, err)
-		}
-		opts = append(opts, grpc.Creds(creds))
-	}
-
-	srv := &pingServer{}
-	grpcServer := grpc.NewServer(opts...)
-	reflection.Register(grpcServer)
-	pb.RegisterServiceServer(grpcServer, srv)
-
-	log.Infof("starting gRPC server: %s", lis.Addr().String())
-	return grpcServer.Serve(lis)
 }
 
 func main() {
@@ -119,12 +90,38 @@ func main() {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	lis, err := net.Listen("tcp", *address)
-	if err != nil {
-		log.Fatalf("error creating listener on %s: %v", *address, err)
+	c := &creds.Config{
+		CA:   *caPath,
+		Cert: *certPath,
+		Key:  *keyPath,
+		Host: *address,
+	}
+	if !c.HasHost() {
+		log.Fatal("host required")
 	}
 
-	if err := startServer(lis); err != nil {
+	lis, err := net.Listen("tcp", c.Host)
+	if err != nil {
+		log.Fatalf("error creating listener on %s: %v", c.Host, err)
+	}
+
+	srv := &PingServer{
+		listener: lis,
+		config:   c,
+	}
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		<-sigCh
+		cancel()
+		srv.Close()
+		os.Exit(0)
+	}()
+
+	if err := srv.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
 }
