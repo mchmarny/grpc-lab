@@ -7,11 +7,9 @@ import (
 	"flag"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"os"
 	"sync"
 
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/mchmarny/grpc-lab/pkg/id"
 	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 	"github.com/pkg/errors"
@@ -26,14 +24,12 @@ var (
 	keyPath  = flag.String("key", "", "Path to TLS key file")
 	address  = flag.String("address", ":50505", "The server address")
 	debug    = flag.Bool("debug", false, "Verbose logging")
-	runHTTP  = flag.Bool("http", false, "Start HTTP vs gRPC server")
-
-	messageCount uint64
-	lock         sync.Mutex
 )
 
 type pingServer struct {
 	pb.UnimplementedServiceServer
+	messageCount uint64
+	lock         sync.Mutex
 }
 
 func (s *pingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.PingResponse, err error) {
@@ -42,15 +38,15 @@ func (s *pingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.Pin
 	}
 	log.Infof("%+v", req)
 
-	lock.Lock()
-	messageCount++
-	lock.Unlock()
+	s.lock.Lock()
+	s.messageCount++
+	s.lock.Unlock()
 
 	res = &pb.PingResponse{
 		Id:       id.NewID(),
 		Message:  req.Message,
 		Reversed: reverse(req.Message),
-		Count:    messageCount,
+		Count:    s.messageCount,
 	}
 	return
 }
@@ -94,7 +90,7 @@ func getCredentials() (credentials.TransportCredentials, error) {
 	return credentials.NewTLS(config), nil
 }
 
-func startGRPCServer(lis net.Listener) error {
+func startServer(lis net.Listener) error {
 	opts := []grpc.ServerOption{}
 	if *certPath != "" && *keyPath != "" {
 		creds, err := getCredentials()
@@ -104,28 +100,12 @@ func startGRPCServer(lis net.Listener) error {
 		opts = append(opts, grpc.Creds(creds))
 	}
 
+	srv := &pingServer{}
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterServiceServer(grpcServer, &pingServer{})
+	pb.RegisterServiceServer(grpcServer, srv)
 
 	log.Infof("starting gRPC server: %s", lis.Addr().String())
 	return grpcServer.Serve(lis)
-}
-
-func startHTTPServer(lis net.Listener) error {
-	mux := runtime.NewServeMux()
-	dialOptions := []grpc.DialOption{grpc.WithInsecure()}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	if err := pb.RegisterServiceHandlerFromEndpoint(ctx, mux, *address, dialOptions); err != nil {
-		return errors.Wrapf(err, "error registering the http endpoint: %s", *address)
-	}
-
-	log.Infof("starting HTTTP server: %s", lis.Addr().String())
-	if *certPath != "" && *keyPath != "" {
-		return http.ServeTLS(lis, mux, *certPath, *keyPath)
-	}
-	return http.Serve(lis, mux)
 }
 
 func main() {
@@ -142,13 +122,7 @@ func main() {
 		log.Fatalf("error creating listener on %s: %v", *address, err)
 	}
 
-	if *runHTTP {
-		if err := startHTTPServer(lis); err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		if err := startGRPCServer(lis); err != nil {
-			log.Fatal(err)
-		}
+	if err := startServer(lis); err != nil {
+		log.Fatal(err)
 	}
 }

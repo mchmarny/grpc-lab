@@ -4,17 +4,10 @@ package grpc.thingz.v1;
 
 option go_package = ".;v1";
 
-import "google/api/annotations.proto";
-
 // Service provides APIs to user application to access the service.
 service Service {
   // Ping method on the service.
-  rpc Ping(PingRequest) returns (PingResponse) {
-    option (google.api.http) = {
-      post : "/v1/ping"
-      body : "*"
-    };
-  };
+  rpc Ping(PingRequest) returns (PingResponse) {};
 }
 
 // PingRequest represents the request message for Ping invocation.
