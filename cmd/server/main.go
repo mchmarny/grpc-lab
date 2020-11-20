@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
+	"io/ioutil"
 	"net"
 	"os"
 
@@ -15,8 +18,9 @@ import (
 )
 
 var (
-	certFile = flag.String("cert", "", "Path to TLS cert file")
-	keyFile  = flag.String("key", "", "Path to TLS key file")
+	caPath   = flag.String("ca", "", "Path to file containing the CA root cert file")
+	certPath = flag.String("cert", "", "Path to TLS cert file")
+	keyPath  = flag.String("key", "", "Path to TLS key file")
 	address  = flag.String("address", ":50505", "The server address")
 	debug    = flag.Bool("debug", false, "Verbose logging")
 )
@@ -46,6 +50,37 @@ func reverse(s string) string {
 	return string(runes)
 }
 
+func getCredentials() (credentials.TransportCredentials, error) {
+	if *certPath == "" || *keyPath == "" || *caPath == "" {
+		return nil, errors.New("missing certificates")
+	}
+
+	log.Infof("using TLS (ca:%s, cert:%s, key:%s)", *caPath, *certPath, *keyPath)
+
+	ca, err := ioutil.ReadFile(*caPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading ca file: %s", *caPath)
+	}
+
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(ca) {
+		return nil, errors.New("error adding client CA")
+	}
+
+	serverCert, err := tls.LoadX509KeyPair(*certPath, *keyPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error loading cert (%s) and key files (%s)", *certPath, *keyPath)
+	}
+
+	config := &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    certPool,
+	}
+
+	return credentials.NewTLS(config), nil
+}
+
 func main() {
 	flag.Parse()
 	log.SetFormatter(&log.JSONFormatter{})
@@ -54,20 +89,25 @@ func main() {
 	if *debug {
 		log.SetLevel(log.TraceLevel)
 	}
+
 	lis, err := net.Listen("tcp", *address)
 	if err != nil {
 		log.Fatalf("error creating listener on %s: %v", *address, err)
 	}
-	var opts []grpc.ServerOption
-	if *certFile != "" && *keyFile != "" {
-		creds, err := credentials.NewServerTLSFromFile(*certFile, *keyFile)
+
+	opts := []grpc.ServerOption{}
+	if *certPath != "" && *keyPath != "" {
+		creds, err := getCredentials()
 		if err != nil {
-			log.Fatalf("error generating credentials using provided cert and key %v", err)
+			log.Fatalf("error getting credentials (cert:%s, key:%s) %v", *certPath, *keyPath, err)
 		}
-		opts = []grpc.ServerOption{grpc.Creds(creds)}
+		opts = append(opts, grpc.Creds(creds))
 	}
+
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterServiceServer(grpcServer, &pingServer{})
+
+	log.Printf("starting server: %s", lis.Addr().String())
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("error: %v", err)
 	}
