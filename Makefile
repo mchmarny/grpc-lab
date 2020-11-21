@@ -5,7 +5,6 @@ SERVER_ADDRESS   ?=:50505
 IMAGE_NAME       ?=grpc-ping
 IMAGE_OWNER      ?=$(shell git config --get user.username)
 
-
 .PHONY: all 
 all: test
 
@@ -16,8 +15,7 @@ protos: ## Generats gRPC proto clients
 	  --go_out=pkg/proto/v1 \
 	  --go_opt=paths=source_relative \
 	  --go-grpc_out=pkg/proto/v1 \
-	  --go-grpc_opt=paths=source_relative \
-	  --grpc-gateway_out=pkg/proto/v1
+	  --go-grpc_opt=paths=source_relative
 
 .PHONY: certs
 certs: ## Create wildcard TLS certificates using letsencrypt for k8s ingress
@@ -47,6 +45,14 @@ client: tidy ## Starts the Ping client
 	go run cmd/client/main.go \
 	  --address=$(SERVER_ADDRESS) \
 	  --client="${APP_NAME}-client" \
+	  --debug=true
+
+.PHONY: stream 
+stream: tidy ## Starts the Ping client
+	go run cmd/client/main.go \
+	  --address=$(SERVER_ADDRESS) \
+	  --client="${APP_NAME}-client" \
+	  --stream=100 \
 	  --debug=true
 
 .PHONY: call

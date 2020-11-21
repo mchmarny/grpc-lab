@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -49,18 +50,50 @@ func (s *PingServer) Close() {
 	}
 }
 
+// Stream stream messages
+func (s *PingServer) Stream(stream pb.Service_StreamServer) error {
+	for {
+		err := contextError(stream.Context())
+		if err != nil {
+			return err
+		}
+
+		req, err := stream.Recv()
+		if err == io.EOF {
+			log.Debug("no more data")
+			break
+		}
+		if err != nil {
+			return errors.Wrap(err, "error receiving stream")
+		}
+
+		res := s.processReq(req)
+
+		err = stream.Send(res)
+		if err != nil {
+			return errors.Wrap(err, "error sending stream response")
+		}
+	}
+	return nil
+}
+
 // Ping performs ping
 func (s *PingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.PingResponse, err error) {
 	if req == nil {
 		return nil, errors.New("nil request")
 	}
+	res = s.processReq(req)
+	return
+}
+
+func (s *PingServer) processReq(req *pb.PingRequest) *pb.PingResponse {
 	log.Infof("%+v", req)
 
 	s.lock.Lock()
 	s.messageCount++
 	s.lock.Unlock()
 
-	res = &pb.PingResponse{
+	return &pb.PingResponse{
 		Id:       req.Id,
 		Message:  req.Message,
 		Reversed: format.ReverseString(req.Message),
@@ -70,7 +103,17 @@ func (s *PingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.Pin
 			"address": s.listener.Addr().String(),
 		},
 	}
-	return
+}
+
+func contextError(ctx context.Context) error {
+	switch ctx.Err() {
+	case context.Canceled:
+		return errors.New("request is canceled")
+	case context.DeadlineExceeded:
+		return errors.New("deadline is exceeded")
+	default:
+		return nil
+	}
 }
 
 func main() {

@@ -8,6 +8,8 @@ option go_package = ".;v1";
 service Service {
   // Ping method on the service.
   rpc Ping(PingRequest) returns (PingResponse) {};
+  // Stream is like Ping but with stream
+  rpc Stream(stream PingRequest) returns (stream PingResponse) {};
 }
 
 // PingRequest represents the request message for Ping invocation.

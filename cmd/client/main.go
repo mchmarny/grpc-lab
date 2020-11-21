@@ -15,12 +15,13 @@ import (
 )
 
 var (
-	address  = flag.String("address", ":50505", "Server address (:50505)")
-	clientID = flag.String("client", "demo", "ID of this client")
-	debug    = flag.Bool("debug", false, "Verbose logging")
+	address   = flag.String("address", ":50505", "Server address (:50505)")
+	clientID  = flag.String("client", "demo", "ID of this client")
+	streamNum = flag.Int64("stream", 0, "number of messages to stream")
+	debug     = flag.Bool("debug", false, "Verbose logging")
 )
 
-func run(ctx context.Context, c *client.PingClient) error {
+func prompt(ctx context.Context, c *client.PingClient) error {
 	if c == nil {
 		return errors.New("client required")
 	}
@@ -55,6 +56,22 @@ func run(ctx context.Context, c *client.PingClient) error {
 	}
 }
 
+func stream(ctx context.Context, c *client.PingClient, n int64) error {
+	if c == nil {
+		return errors.New("client required")
+	}
+
+	list := make([]string, 0)
+	for i := int64(0); i < n; i++ {
+		list = append(list, fmt.Sprintf("test %d", i))
+	}
+
+	if err := c.Stream(ctx, list); err != nil {
+		return errors.Wrap(err, "error streaming")
+	}
+	return nil
+}
+
 func main() {
 	flag.Parse()
 	log.SetFormatter(&log.JSONFormatter{})
@@ -79,8 +96,15 @@ func main() {
 		log.Fatalf("error creating client: %v", err)
 	}
 
-	if err := run(ctx, c); err != nil {
-		log.Fatalf("error starting: %v", err)
+	if streamNum != nil && *streamNum > 0 {
+		if err := stream(ctx, c, *streamNum); err != nil {
+			log.Fatalf("error executing stream: %v", err)
+		}
+	} else {
+		if err := prompt(ctx, c); err != nil {
+			log.Fatalf("error executing prompt: %v", err)
+		}
 	}
+
 	log.Info("done")
 }

@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/mchmarny/grpc-lab/pkg/id"
@@ -41,16 +43,22 @@ type PingClient struct {
 	id     string
 }
 
-// Ping sends messages to the server
-func (p *PingClient) Ping(ctx context.Context, msg string) (out string, count int64, err error) {
-	req := &pb.PingRequest{
+// MakeRequest creates a request from message
+func (p *PingClient) MakeRequest(msg string, index int) *pb.PingRequest {
+	return &pb.PingRequest{
 		Id:      id.NewID(),
 		Message: msg,
 		Metadata: map[string]string{
-			"client-id":  p.id,
-			"created-on": time.Now().UTC().Format(time.RFC3339),
+			"client-id":     p.id,
+			"created-on":    time.Now().UTC().Format(time.RFC3339),
+			"message-index": fmt.Sprintf("%d", index),
 		},
 	}
+}
+
+// Ping sends messages to the server
+func (p *PingClient) Ping(ctx context.Context, msg string) (out string, count int64, err error) {
+	req := p.MakeRequest(msg, 0)
 
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -60,6 +68,54 @@ func (p *PingClient) Ping(ctx context.Context, msg string) (out string, count in
 		return "", 0, errors.Wrap(err, "error on ping")
 	}
 	return resp.Reversed, resp.Count, nil
+}
+
+// Stream streams messages from the client
+func (p *PingClient) Stream(ctx context.Context, list []string) error {
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	stream, err := p.client.Stream(pingCtx)
+	if err != nil {
+		return errors.Wrap(err, "error creating stream")
+	}
+	waitResponse := make(chan error)
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				log.Debug("no more responses")
+				waitResponse <- nil
+				return
+			}
+			if err != nil {
+				waitResponse <- errors.Wrap(err, "error receiving stream response")
+				return
+			}
+
+			log.Debugf("received response: %+v", res)
+		}
+	}()
+
+	// send messages
+	for i, msg := range list {
+		req := p.MakeRequest(msg, i)
+
+		err := stream.Send(req)
+		if err != nil {
+			return errors.Wrapf(err, "error sending stream request: %v", stream.RecvMsg(nil))
+		}
+
+		log.Debugf("sent request: %+v", req)
+	}
+
+	err = stream.CloseSend()
+	if err != nil {
+		return errors.Wrap(err, "cannot close stream")
+	}
+
+	err = <-waitResponse
+	return err
 }
 
 // Close cleans up resources

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"testing"
 	"time"
 
@@ -76,7 +77,7 @@ func getTestServer() *PingServer {
 func startTestServer(ctx context.Context, t *testing.T, srv *PingServer) {
 	go func() {
 		if err := srv.Start(ctx); err != nil && err.Error() != "closed" {
-			t.Fatalf("error starting server: %v", err)
+			log.Fatalf("error starting server: %v", err)
 		}
 	}()
 }

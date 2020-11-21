@@ -19,6 +19,8 @@ const _ = grpc.SupportPackageIsVersion7
 type ServiceClient interface {
 	// Ping method on the service.
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	// Stream is like Ping but with stream
+	Stream(ctx context.Context, opts ...grpc.CallOption) (Service_StreamClient, error)
 }
 
 type serviceClient struct {
@@ -38,12 +40,45 @@ func (c *serviceClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.
 	return out, nil
 }
 
+func (c *serviceClient) Stream(ctx context.Context, opts ...grpc.CallOption) (Service_StreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Service_serviceDesc.Streams[0], "/io.thingz.grpc.v1.Service/Stream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &serviceStreamClient{stream}
+	return x, nil
+}
+
+type Service_StreamClient interface {
+	Send(*PingRequest) error
+	Recv() (*PingResponse, error)
+	grpc.ClientStream
+}
+
+type serviceStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *serviceStreamClient) Send(m *PingRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *serviceStreamClient) Recv() (*PingResponse, error) {
+	m := new(PingResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ServiceServer is the server API for Service service.
 // All implementations must embed UnimplementedServiceServer
 // for forward compatibility
 type ServiceServer interface {
 	// Ping method on the service.
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	// Stream is like Ping but with stream
+	Stream(Service_StreamServer) error
 	mustEmbedUnimplementedServiceServer()
 }
 
@@ -53,6 +88,9 @@ type UnimplementedServiceServer struct {
 
 func (UnimplementedServiceServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedServiceServer) Stream(Service_StreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method Stream not implemented")
 }
 func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}
 
@@ -85,6 +123,32 @@ func _Service_Ping_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Service_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ServiceServer).Stream(&serviceStreamServer{stream})
+}
+
+type Service_StreamServer interface {
+	Send(*PingResponse) error
+	Recv() (*PingRequest, error)
+	grpc.ServerStream
+}
+
+type serviceStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *serviceStreamServer) Send(m *PingResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *serviceStreamServer) Recv() (*PingRequest, error) {
+	m := new(PingRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 var _Service_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "io.thingz.grpc.v1.Service",
 	HandlerType: (*ServiceServer)(nil),
@@ -94,6 +158,13 @@ var _Service_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Service_Ping_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Stream",
+			Handler:       _Service_Stream_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "ping.proto",
 }
