@@ -19,11 +19,11 @@ import (
 )
 
 var (
-	caPath   = flag.String("ca", "", "Path to file containing the CA root cert file")
-	certPath = flag.String("cert", "", "Path to TLS cert file")
-	keyPath  = flag.String("key", "", "Path to TLS key file")
-	address  = flag.String("address", ":50505", "The server address")
-	debug    = flag.Bool("debug", false, "Verbose logging")
+	caPath   = config.GetEnvVar("CA_CERT", "")
+	certPath = config.GetEnvVar("SERVER_CERT", "")
+	keyPath  = config.GetEnvVar("SERVER_KEY", "")
+	address  = config.GetEnvVar("ADDRESS", ":50505")
+	debug    = config.GetEnvBoolVar("DEBUG", false)
 )
 
 // PingServer represents the server that responds to pings
@@ -86,15 +86,15 @@ func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.WarnLevel)
-	if *debug {
+	if debug {
 		log.SetLevel(log.TraceLevel)
 	}
 
 	c := &config.Config{
-		CA:   *caPath,
-		Cert: *certPath,
-		Key:  *keyPath,
-		Host: *address,
+		CA:   caPath,
+		Cert: certPath,
+		Key:  keyPath,
+		Host: address,
 	}
 	if !c.HasHost() {
 		log.Fatal("host required")

@@ -53,25 +53,27 @@ test: tidy ## Tests the entire project
 
 .PHONY: server 
 server: tidy ## Starts the Ping server
+	ADDRESS=$(SERVER_ADDRESS) \
+	DEBUG=true \
 	go run cmd/server/main.go \
 	  --address=$(SERVER_ADDRESS) \
 	  --debug=true
+
+.PHONY: server-tls
+server-tls: tidy ## Starts the Ping server with TLS certs
+	GRPC_VERBOSITY=debug GRPC_TRACE=tcp,http,api \
+	ADDRESS=$(SERVER_ADDRESS) \
+	CA_CERT=certs/ca-cert.pem \
+	SERVER_CERT=certs/server-cert.pem \
+	SERVER_KEY=certs/server-key.pem \
+	DEBUG=true \
+	go run cmd/server/main.go
 
 .PHONY: client 
 client: tidy ## Starts the Ping client
 	go run cmd/client/main.go \
 	  --address=$(SERVER_ADDRESS) \
 	  --client="${APP_NAME}-client" \
-	  --debug=true
-
-.PHONY: server-tls
-server-tls: tidy ## Starts the Ping server with TLS certs
-	GRPC_VERBOSITY=debug GRPC_TRACE=tcp,http,api \
-	go run cmd/server/main.go \
-	  --address=$(SERVER_ADDRESS) \
-	  --ca=certs/ca-cert.pem \
-	  --cert=certs/server-cert.pem \
-	  --key=certs/server-key.pem \
 	  --debug=true
 
 .PHONY: client-tls 
