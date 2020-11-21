@@ -1,16 +1,23 @@
-APP_NAME         ?=demo
-HOST_NAME        ?=grpc.thingz.io
+APP_NAME         ?=ping
+HOST_NAME        ?=thingz.io
 RELEASE_VERSION  ?=v0.0.1
 SERVER_ADDRESS   ?=:50505
-IMAGE_NAME       ?=grpc-ping-server
+IMAGE_NAME       ?=grpc-ping
 IMAGE_OWNER      ?=$(shell git config --get user.username)
 
 
 .PHONY: all 
 all: test
 
+.PHONY: ingress-certs
+ingress-certs: ## Create wildcard TLS certificates using letsencrypt for k8s ingress
+	sudo certbot certonly --manual --preferred-challenges dns -d "*.${HOST_NAME}"
+	sudo cp "/etc/letsencrypt/live/${HOST_NAME}/fullchain.pem" certs/ingress-cert.pem	
+	sudo cp "/etc/letsencrypt/live/${HOST_NAME}/privkey.pem" certs/ingress-key.pem
+	sudo chmod 644 certs/${HOST_NAME}/*.pem
+
 .PHONY: certs
-certs: ## Updates the go modules
+certs: ## Creates MTL certificates for use directlty in go
 	rm -f certs/*.pem
 	openssl req -x509 -newkey rsa:4096 -days 365 -nodes \
 	  -keyout certs/ca-key.pem \
@@ -58,9 +65,7 @@ test: tidy ## Tests the entire project
 server: tidy ## Starts the Ping server
 	ADDRESS=$(SERVER_ADDRESS) \
 	DEBUG=true \
-	go run cmd/server/main.go \
-	  --address=$(SERVER_ADDRESS) \
-	  --debug=true
+	go run cmd/server/main.go
 
 .PHONY: server-tls
 server-tls: tidy ## Starts the Ping server with TLS certs
@@ -84,21 +89,29 @@ client-tls: tidy ## Starts the Ping client with TLS cert
 	GRPC_VERBOSITY=debug GRPC_TRACE=tcp,http,api \
 	go run cmd/client/main.go \
 	  --address=$(SERVER_ADDRESS) \
-	  --host="${HOST_NAME}" \
+	  --host="${APP_NAME}.${HOST_NAME}" \
 	  --client="${APP_NAME}-client" \
 	  --ca=certs/ca-cert.pem \
 	  --cert=certs/client-cert.pem \
 	  --key=certs/client-key.pem \
 	  --debug=true
 
-.PHONY: call
-call: ## Lists processes using the app addresss
+.PHONY: call-tls
+call-tls: ## Lists processes using the app addresss
 	grpcurl \
 	 -d '{"id":"id1", "message":"hello"}' \
 	 -authority="${APP_NAME}.${HOST_NAME}" \
 	 -cacert=certs/ca-cert.pem \
 	 -cert=certs/client-cert.pem \
 	 -key=certs/client-key.pem \
+	 $(SERVER_ADDRESS) \
+	 io.thingz.grpc.v1.Service/Ping
+
+.PHONY: call
+call: ## Lists processes using the app addresss
+	grpcurl -plaintext \
+	 -d '{"id":"id1", "message":"hello"}' \
+	 -authority="${APP_NAME}.${HOST_NAME}" \
 	 $(SERVER_ADDRESS) \
 	 io.thingz.grpc.v1.Service/Ping
 
@@ -114,7 +127,7 @@ spellcheck: ## Checks spelling across the entire project
 
 .PHONY: cover 
 cover: tidy ## Displays test coverage in the service and service packages
-	go test -coverprofile=cover-service.out ./service && go tool cover -html=cover-service.out
+	go test -coverprofile=cover.out ./service && go tool cover -html=cover.out
 
 .PHONY: lint 
 lint: ## Lints the entire project

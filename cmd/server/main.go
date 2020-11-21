@@ -39,6 +39,7 @@ type PingServer struct {
 func (s *PingServer) Start(ctx context.Context) error {
 	opts := []grpc.ServerOption{}
 	if s.config.HasCerts() {
+		log.Info("using TLS")
 		creds, err := config.GetServerCredentials(s.config)
 		if err != nil {
 			return errors.Wrapf(err, "error getting credentials (%+v): %v", s.config, err)

@@ -1,20 +1,22 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: grpc-ingress-rules
+  name: ping-ingress-rules
   namespace: grpc-lab
   annotations:
-    nginx.ingress.kubernetes.io/grpc-backend: "true"
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
 spec:
   tls:
     - hosts:  
-      - grpc.thingz.io
+      - ping.thingz.io
       secretName: tls-secret
   rules:
-    - host: grpc.thingz.io
+    - host: ping.thingz.io
       http:
         paths:
           - path: /
             backend:
-              serviceName: grpc
+              serviceName: ping
               servicePort: 50505

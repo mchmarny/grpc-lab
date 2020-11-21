@@ -1,12 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: grpc
+  name: ping
   namespace: grpc-lab
 spec:
   selector:
-    app: grpc
+    app: ping
   ports:
-    - protocol: TCP
-      port: 50505
+    - port: 50505
+      protocol: TCP
       targetPort: 50505
+  sessionAffinity: None
+  type: NodePort

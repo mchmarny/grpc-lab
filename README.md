@@ -17,7 +17,8 @@ kubectl create ns $SPACE
 Apply deployment:
 
 ```shell
-kubectl apply -f deploy/server.yaml
+kubectl apply -f deploy/app.yaml
+kubectl rollout status deployment.apps/ping -n $SPACE
 ```
 
 Check pod status: 
@@ -26,13 +27,13 @@ Check pod status:
 kubectl get pods -n grpc-lab
 
 NAME                    READY   STATUS    RESTARTS   AGE
-grpc-775965b896-lf4zw   1/1     Running   0          6s
+ping-554f558fbd-h96rf   1/1     Running   0          15s
 ```
 
 Check server logs:
 
 ```shell
-kubectl logs -l app=grpc -n $SPACE 
+kubectl logs -l app=ping -n $SPACE 
 ```
 
 ## service 
@@ -45,7 +46,32 @@ kubectl apply -f deploy/service.yaml
 kubectl get service -n $SPACE
 
 NAME   TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)     AGE
-grpc   ClusterIP   10.0.3.233   <none>        50505/TCP   13s
+ping   ClusterIP   10.0.31.13   <none>        50505/TCP   6s
+```
+
+## test 
+
+```shell
+kubectl port-forward svc/ping 50505 -n $SPACE
+```
+
+```shell
+grpcurl -plaintext \
+        -d '{"id":"id1", "message":"hello"}' \
+        -authority=ping.thingz.io \
+        localhost:50505 \
+        io.thingz.grpc.v1.Service/Ping
+```
+
+Response
+
+```json
+{
+  "id": "5beea6b8-e9b7-4564-8635-e56212884eb9",
+  "message": "hello",
+  "reversed": "olleh",
+  "count": "1"
+}
 ```
 
 ## ingress 
@@ -54,8 +80,8 @@ TLS Certs secret
 
 ```shell
 kubectl create secret tls tls-secret \
-		--key certs/server-key.pem \
-		--cert certs/server-cert.pem \
+		--key certs/ingress-key.pem \
+		--cert certs/ingress-cert.pem \
 		-n $SPACE 
 ```
 
@@ -69,15 +95,23 @@ kubectl apply -f deploy/ingress.yaml
 kubectl get ingress -n $SPACE
 ```
 
-## test
+## test via ingress
 
 ```shell
-grpcurl -v -insecure grpc.thingz.io:443 list
-
-grpcurl -v \
-  -d '{"id":"id1", "message":"hello"}' \
-  grpc.thingz.io:443 \
+grpcurl -d '{"id":"id1", "message":"hello"}' \
+  ping.thingz.io:443 \
   io.thingz.grpc.v1.Service/Ping
+```
+
+Responds:
+
+```json
+{
+  "id": "3c55a679-2b6b-49bd-b3d8-73c17f4a2c9b",
+  "message": "hello",
+  "reversed": "olleh",
+  "count": "2"
+}
 ```
 
 ## cleanup 
