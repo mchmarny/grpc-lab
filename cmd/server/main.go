@@ -7,11 +7,11 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 
 	"github.com/mchmarny/grpc-lab/pkg/config"
-	"github.com/mchmarny/grpc-lab/pkg/id"
+	"github.com/mchmarny/grpc-lab/pkg/format"
 	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
-	"github.com/mchmarny/grpc-lab/pkg/string"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -29,7 +29,7 @@ var (
 // PingServer represents the server that responds to pings
 type PingServer struct {
 	pb.UnimplementedServiceServer
-	messageCount uint64
+	messageCount int64
 	lock         sync.Mutex
 	listener     net.Listener
 	config       *config.Config
@@ -74,10 +74,14 @@ func (s *PingServer) Ping(ctx context.Context, req *pb.PingRequest) (res *pb.Pin
 	s.lock.Unlock()
 
 	res = &pb.PingResponse{
-		Id:       id.NewID(),
+		Id:       req.Id,
 		Message:  req.Message,
-		Reversed: string.ReverseString(req.Message),
+		Reversed: format.ReverseString(req.Message),
 		Count:    s.messageCount,
+		Created:  time.Now().UTC().UnixNano(),
+		Metadata: map[string]string{
+			"address": s.listener.Addr().String(),
+		},
 	}
 	return
 }

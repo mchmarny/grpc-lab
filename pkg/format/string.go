@@ -1,4 +1,4 @@
-package string
+package format
 
 // ReverseString reverses the passed string
 func ReverseString(s string) string {

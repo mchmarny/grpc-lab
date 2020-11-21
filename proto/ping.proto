@@ -20,7 +20,6 @@ message PingRequest {
 
   // Optional. Represents message metadata
   map<string,string> metadata = 3;
-
 }
 
 // GetStateRequest is the message to get key-value states from specific state store.
@@ -35,6 +34,11 @@ message PingResponse {
   string reversed = 3;
 
   // Represents the count of messages
-  uint64 count = 4;
+  int64 count = 4;
 
+  // Represents the count of messages
+  int64 created = 5;
+
+  // Optional. Represents message metadata
+  map<string,string> metadata = 6;
 }

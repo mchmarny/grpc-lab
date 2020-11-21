@@ -57,7 +57,7 @@ type PingClient struct {
 }
 
 // Ping sends messages to the server
-func (p *PingClient) Ping(ctx context.Context, msg string) (out string, count uint64, err error) {
+func (p *PingClient) Ping(ctx context.Context, msg string) (out string, count int64, err error) {
 	req := &pb.PingRequest{
 		Id:      id.NewID(),
 		Message: msg,
