@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/mchmarny/grpc-lab/pkg/config"
 	"github.com/mchmarny/grpc-lab/pkg/id"
 	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 	"github.com/pkg/errors"
@@ -13,24 +12,12 @@ import (
 )
 
 // NewPingClient creates a new instance of the ping client
-func NewPingClient(ctx context.Context, target, clientID string, conf *config.Config) (client *PingClient, err error) {
+func NewPingClient(ctx context.Context, target, clientID string) (client *PingClient, err error) {
 	if target == "" {
 		return nil, errors.New("target required")
 	}
-	if conf == nil {
-		return nil, errors.New("config required")
-	}
 	// dialing options
 	opt := grpc.WithInsecure()
-	if conf.HasCerts() {
-		cc, err := config.GetClientCredentials(conf)
-		if err != nil {
-			return nil, errors.Wrapf(err,
-				"error getting client credentials (cert:%s, key:%s)", conf.Cert, conf.Key)
-		}
-		opt = grpc.WithTransportCredentials(cc)
-	}
-
 	log.Infof("dialing: %s...)", target)
 	conn, err := grpc.Dial(target, opt)
 	if err != nil {
@@ -42,7 +29,6 @@ func NewPingClient(ctx context.Context, target, clientID string, conf *config.Co
 		client: pb.NewServiceClient(conn),
 		target: target,
 		id:     clientID,
-		conf:   conf,
 	}
 	return
 }
@@ -53,7 +39,6 @@ type PingClient struct {
 	client pb.ServiceClient
 	target string
 	id     string
-	conf   *config.Config
 }
 
 // Ping sends messages to the server
@@ -64,7 +49,6 @@ func (p *PingClient) Ping(ctx context.Context, msg string) (out string, count in
 		Metadata: map[string]string{
 			"client-id":  p.id,
 			"created-on": time.Now().UTC().Format(time.RFC3339),
-			"host":       p.conf.Host,
 		},
 	}
 

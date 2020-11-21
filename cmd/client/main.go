@@ -10,17 +10,12 @@ import (
 	"strings"
 
 	"github.com/mchmarny/grpc-lab/pkg/client"
-	"github.com/mchmarny/grpc-lab/pkg/config"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	caPath   = flag.String("ca", "", "Path to file containing the CA root cert file")
-	certPath = flag.String("cert", "", "Path to TLS cert file")
-	keyPath  = flag.String("key", "", "Path to TLS key file")
 	address  = flag.String("address", ":50505", "Server address (:50505)")
-	host     = flag.String("host", "demo.grpc.thingz.io", "Hostname returned in TLS handshake (demo.grpc.thingz.io)")
 	clientID = flag.String("client", "demo", "ID of this client")
 	debug    = flag.Bool("debug", false, "Verbose logging")
 )
@@ -79,14 +74,7 @@ func main() {
 		os.Exit(0)
 	}()
 
-	cfg := &config.Config{
-		CA:   *caPath,
-		Cert: *certPath,
-		Key:  *keyPath,
-		Host: *host,
-	}
-
-	c, err := client.NewPingClient(ctx, *address, *clientID, cfg)
+	c, err := client.NewPingClient(ctx, *address, *clientID)
 	if err != nil {
 		log.Fatalf("error creating client: %v", err)
 	}

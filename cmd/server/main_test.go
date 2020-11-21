@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mchmarny/grpc-lab/pkg/config"
 	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 
 	"github.com/stretchr/testify/assert"
@@ -69,10 +68,8 @@ func getTestRequest() *pb.PingRequest {
 }
 
 func getTestServer() *PingServer {
-	c := &config.Config{}
 	return &PingServer{
 		listener: bufconn.Listen(1024 * 1024),
-		config:   c,
 	}
 }
 

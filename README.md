@@ -17,7 +17,7 @@ kubectl create ns $SPACE
 Apply deployment:
 
 ```shell
-kubectl apply -f deploy/app.yaml
+kubectl apply -f deploy/app.yaml -n $SPACE
 kubectl rollout status deployment.apps/ping -n $SPACE
 ```
 
@@ -39,7 +39,7 @@ kubectl logs -l app=ping -n $SPACE
 ## service 
 
 ```shell
-kubectl apply -f deploy/service.yaml
+kubectl apply -f deploy/service.yaml -n $SPACE
 ```
 
 ```shell
@@ -57,20 +57,24 @@ kubectl port-forward svc/ping 50505 -n $SPACE
 
 ```shell
 grpcurl -plaintext \
-        -d '{"id":"id1", "message":"hello"}' \
-        -authority=ping.thingz.io \
-        localhost:50505 \
-        io.thingz.grpc.v1.Service/Ping
+	  -d '{"id":"id1", "message":"hello"}' \
+	  -authority="ping.thingz.io" \
+	  :50505 \
+	  io.thingz.grpc.v1.Service/Ping
 ```
 
 Response
 
 ```json
 {
-  "id": "5beea6b8-e9b7-4564-8635-e56212884eb9",
+  "id": "id1",
   "message": "hello",
   "reversed": "olleh",
-  "count": "1"
+  "count": "2",
+  "created": "1605994941996399038",
+  "metadata": {
+    "address": "[::]:50505"
+  }
 }
 ```
 
@@ -88,14 +92,20 @@ kubectl create secret tls tls-secret \
 Create ingress
 
 ```shell
-kubectl apply -f deploy/ingress.yaml
+kubectl apply -f deploy/ingress.yaml -n $SPACE
 ```
+
+Watch the ingress until the `ADDRESS` column gets populated:
 
 ```shell
-kubectl get ingress -n $SPACE
+kubectl get ingress -n $SPACE -w
 ```
 
+Now go to the DNS server and create an `A` entry for the value in the `HOSTS` column. You can test when this gets propagated using `dig ping.thingz.io` for example, or whatever the `HOST` value is.
+
 ## test via ingress
+
+Now, test it again but this time without the `-plaintext` and `-authority` flags: 
 
 ```shell
 grpcurl -d '{"id":"id1", "message":"hello"}' \
@@ -103,20 +113,12 @@ grpcurl -d '{"id":"id1", "message":"hello"}' \
   io.thingz.grpc.v1.Service/Ping
 ```
 
-Responds:
-
-```json
-{
-  "id": "3c55a679-2b6b-49bd-b3d8-73c17f4a2c9b",
-  "message": "hello",
-  "reversed": "olleh",
-  "count": "2"
-}
-```
+If everything goes well you should see the same response we go using port forwarding before. 
 
 ## cleanup 
 
 ```shell
-kubectl delete -f deploy
+kubectl delete -f deploy -n $SPACE
 kubectl delete secret tls-secret -n $SPACE 
+kubectl delete ns $SPACE
 ```

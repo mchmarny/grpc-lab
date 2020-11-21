@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ping
-  namespace: grpc-lab
   labels:
     app: ping
 spec:
@@ -14,12 +13,11 @@ spec:
     metadata:
       labels:
         app: ping
-        demo: grpc-lab
     spec:
       restartPolicy: Always
       containers:
       - name: ping
-        image: ghcr.io/mchmarny/grpc-ping:v0.0.1
+        image: ghcr.io/mchmarny/grpc-ping:v0.0.2
         ports:
         - containerPort: 50505
         env:

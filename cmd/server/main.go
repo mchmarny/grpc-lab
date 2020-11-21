@@ -19,11 +19,8 @@ import (
 )
 
 var (
-	caPath   = config.GetEnvVar("CA_CERT", "")
-	certPath = config.GetEnvVar("SERVER_CERT", "")
-	keyPath  = config.GetEnvVar("SERVER_KEY", "")
-	address  = config.GetEnvVar("ADDRESS", ":50505")
-	debug    = config.GetEnvBoolVar("DEBUG", false)
+	address = config.GetEnvVar("ADDRESS", ":50505")
+	debug   = config.GetEnvBoolVar("DEBUG", false)
 )
 
 // PingServer represents the server that responds to pings
@@ -32,21 +29,11 @@ type PingServer struct {
 	messageCount int64
 	lock         sync.Mutex
 	listener     net.Listener
-	config       *config.Config
 }
 
 // Start starts the ping server
 func (s *PingServer) Start(ctx context.Context) error {
 	opts := []grpc.ServerOption{}
-	if s.config.HasCerts() {
-		log.Info("using TLS")
-		creds, err := config.GetServerCredentials(s.config)
-		if err != nil {
-			return errors.Wrapf(err, "error getting credentials (%+v): %v", s.config, err)
-		}
-		opts = append(opts, grpc.Creds(creds))
-	}
-
 	grpcServer := grpc.NewServer(opts...)
 	reflection.Register(grpcServer)
 	pb.RegisterServiceServer(grpcServer, s)
@@ -95,24 +82,13 @@ func main() {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	c := &config.Config{
-		CA:   caPath,
-		Cert: certPath,
-		Key:  keyPath,
-		Host: address,
-	}
-	if !c.HasHost() {
-		log.Fatal("host required")
-	}
-
-	lis, err := net.Listen("tcp", c.Host)
+	lis, err := net.Listen("tcp", address)
 	if err != nil {
-		log.Fatalf("error creating listener on %s: %v", c.Host, err)
+		log.Fatalf("error creating listener on %s: %v", address, err)
 	}
 
 	srv := &PingServer{
 		listener: lis,
-		config:   c,
 	}
 
 	sigCh := make(chan os.Signal, 1)
