@@ -8,14 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 
-	"github.com/mchmarny/grpc-lab/pkg/creds"
-	"github.com/mchmarny/grpc-lab/pkg/id"
-	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
+	"github.com/mchmarny/grpc-lab/pkg/client"
+	"github.com/mchmarny/grpc-lab/pkg/config"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 var (
@@ -28,31 +25,14 @@ var (
 	debug    = flag.Bool("debug", false, "Verbose logging")
 )
 
-func start(ctx context.Context, target, clientID string, c *creds.Config) error {
+func run(ctx context.Context, c *client.PingClient) error {
 	if c == nil {
-		return errors.New("config required")
+		return errors.New("client required")
 	}
-	transportOption := grpc.WithInsecure()
-	if c.HasCerts() {
-		creds, err := creds.GetClientCredentials(c)
-		if err != nil {
-			return errors.Wrapf(err, "error getting credentials (cert:%s, key:%s)", c.Cert, c.Key)
-		}
-		transportOption = grpc.WithTransportCredentials(creds)
-	}
-
-	log.Infof("dialing: %s...)", target)
-	conn, err := grpc.Dial(target, transportOption)
-	if err != nil {
-		return errors.Wrap(err, "error dialling")
-	}
-	defer conn.Close()
-	log.Info("connected")
 
 	var msg string
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Split(bufio.ScanBytes)
-	client := pb.NewServiceClient(conn)
 
 	for {
 		fmt.Print("message (enter to exit): ")
@@ -64,29 +44,17 @@ func start(ctx context.Context, target, clientID string, c *creds.Config) error 
 			}
 		}
 		if strings.TrimSpace(msg) == "" {
+			// exit promots
 			return nil
 		}
 
-		req := &pb.PingRequest{
-			Id:      id.NewID(),
-			Message: msg,
-			Metadata: map[string]string{
-				"client-id":  clientID,
-				"created-on": time.Now().UTC().Format(time.RFC3339),
-				"host":       c.Host,
-			},
-		}
-
-		pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-
-		resp, err := client.Ping(pingCtx, req)
+		revMsg, msgCount, err := c.Ping(ctx, msg)
 		if err != nil {
-			fmt.Printf("error on ping: %v", err)
+			fmt.Printf("error: %v", err)
 			continue
 		}
 
-		fmt.Printf("%v - #%d\n", resp.Reversed, resp.Count)
+		fmt.Printf("%v - #%d\n", revMsg, msgCount)
 		fmt.Println()
 		msg = ""
 	}
@@ -111,13 +79,20 @@ func main() {
 		os.Exit(0)
 	}()
 
-	c := &creds.Config{
+	cfg := &config.Config{
 		CA:   *caPath,
 		Cert: *certPath,
 		Key:  *keyPath,
 		Host: *host,
 	}
 
-	start(ctx, *address, *clientID, c)
+	c, err := client.NewPingClient(ctx, *address, *clientID, cfg)
+	if err != nil {
+		log.Fatalf("error creating client: %v", err)
+	}
+
+	if err := run(ctx, c); err != nil {
+		log.Fatalf("error starting: %v", err)
+	}
 	log.Info("done")
 }

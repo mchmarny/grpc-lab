@@ -1,4 +1,4 @@
-package creds
+package config
 
 import (
 	"crypto/tls"

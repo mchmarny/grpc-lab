@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"sync"
 
-	"github.com/mchmarny/grpc-lab/pkg/creds"
+	"github.com/mchmarny/grpc-lab/pkg/config"
 	"github.com/mchmarny/grpc-lab/pkg/id"
 	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 	"github.com/mchmarny/grpc-lab/pkg/string"
@@ -32,14 +32,14 @@ type PingServer struct {
 	messageCount uint64
 	lock         sync.Mutex
 	listener     net.Listener
-	config       *creds.Config
+	config       *config.Config
 }
 
 // Start starts the ping server
 func (s *PingServer) Start(ctx context.Context) error {
 	opts := []grpc.ServerOption{}
 	if s.config.HasCerts() {
-		creds, err := creds.GetServerCredentials(s.config)
+		creds, err := config.GetServerCredentials(s.config)
 		if err != nil {
 			return errors.Wrapf(err, "error getting credentials (%+v): %v", s.config, err)
 		}
@@ -90,7 +90,7 @@ func main() {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	c := &creds.Config{
+	c := &config.Config{
 		CA:   *caPath,
 		Cert: *certPath,
 		Key:  *keyPath,
@@ -121,7 +121,7 @@ func main() {
 		os.Exit(0)
 	}()
 
-	if err := srv.Start(ctx); err != nil {
+	if err := srv.Start(ctx); err != nil && err.Error() != "closed" {
 		log.Fatal(err)
 	}
 }
