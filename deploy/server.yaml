@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grpc
+  namespace: grpc-lab
+  labels:
+    app: grpc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grpc
+  template:
+    metadata:
+      labels:
+        app: grpc
+        demo: grpc-lab
+    spec:
+      containers:
+      - name: server
+        image: ghcr.io/mchmarny/grpc-ping-server:v0.0.1
+        ports:
+        - containerPort: 50505
+        env:
+        - name: ADDRESS
+          value: ":50505"
+        - name: DEBUG
+          value: "true"
+

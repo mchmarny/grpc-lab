@@ -1,7 +1,10 @@
-RELEASE_VERSION   =v0.0.1
 APP_NAME         ?=demo
 HOST_NAME        ?=grpc.thingz.io
+RELEASE_VERSION  ?=v0.0.1
 SERVER_ADDRESS   ?=:50505
+IMAGE_NAME       ?=grpc-ping-server
+IMAGE_OWNER      ?=$(shell git config --get user.username)
+
 
 .PHONY: all 
 all: test
@@ -116,6 +119,13 @@ cover: tidy ## Displays test coverage in the service and service packages
 .PHONY: lint 
 lint: ## Lints the entire project
 	golangci-lint run --timeout=3m
+
+.PHONY: image
+image: tidy ## Builds and publish image 
+	docker build \
+		-f cmd/server/Dockerfile \
+		-t "ghcr.io/$(IMAGE_OWNER)/$(IMAGE_NAME):$(RELEASE_VERSION)" .
+	docker push "ghcr.io/$(IMAGE_OWNER)/$(IMAGE_NAME):$(RELEASE_VERSION)"
 
 .PHONY: tag 
 tag: ## Creates release tag 
