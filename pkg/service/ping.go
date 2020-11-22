@@ -11,6 +11,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	pb "github.com/mchmarny/grpc-lab/pkg/api/v1"
+	"github.com/mchmarny/grpc-lab/pkg/format"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -114,7 +115,7 @@ func (s *PingService) processReq(req *pb.PingRequest) *pb.PingResponse {
 		MessageID:    req.Content.Id,
 		MessageCount: s.messageCount,
 		Processed:    time.Now().UTC().UnixNano(),
-		Detail:       fmt.Sprintf("Message processed on: %s", s.grpcListener.Addr().String()),
+		Detail:       fmt.Sprintf("Reversed: %s", format.ReverseString(string(req.Content.Data))),
 	}
 }
 
