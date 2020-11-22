@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
+	pb "github.com/mchmarny/grpc-lab/pkg/api/v1"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/test/bufconn"

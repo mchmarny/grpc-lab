@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
+	pb "github.com/mchmarny/grpc-lab/pkg/api/v1"
 	"github.com/mchmarny/grpc-lab/pkg/config"
 	"github.com/mchmarny/grpc-lab/pkg/format"
-	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

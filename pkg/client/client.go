@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
+	pb "github.com/mchmarny/grpc-lab/pkg/api/v1"
 	"github.com/mchmarny/grpc-lab/pkg/id"
-	pb "github.com/mchmarny/grpc-lab/pkg/proto/v1"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

@@ -17,7 +17,7 @@ kubectl create ns $SPACE
 Apply deployment:
 
 ```shell
-kubectl apply -f deploy/app.yaml -n $SPACE
+kubectl apply -f deployments/app.yaml -n $SPACE
 kubectl rollout status deployment.apps/ping -n $SPACE
 ```
 
@@ -39,7 +39,7 @@ kubectl logs -l app=ping -n $SPACE
 ## service 
 
 ```shell
-kubectl apply -f deploy/service.yaml -n $SPACE
+kubectl apply -f deployments/service.yaml -n $SPACE
 ```
 
 ```shell
@@ -92,7 +92,7 @@ kubectl create secret tls tls-secret \
 Create ingress
 
 ```shell
-kubectl apply -f deploy/ingress.yaml -n $SPACE
+kubectl apply -f deployments/ingress.yaml -n $SPACE
 ```
 
 Watch the ingress until the `ADDRESS` column gets populated:
@@ -118,7 +118,7 @@ If everything goes well you should see the same response we go using port forwar
 ## cleanup 
 
 ```shell
-kubectl delete -f deploy -n $SPACE
+kubectl delete -f deployments/ -n $SPACE
 kubectl delete secret tls-secret -n $SPACE 
 kubectl delete ns $SPACE
 ```

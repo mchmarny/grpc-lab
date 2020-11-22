@@ -1,6 +1,6 @@
 APP_NAME         ?=ping
 HOST_NAME        ?=thingz.io
-RELEASE_VERSION  ?=v0.0.2
+RELEASE_VERSION  ?=v0.0.3
 SERVER_ADDRESS   ?=:50505
 IMAGE_NAME       ?=grpc-ping
 IMAGE_OWNER      ?=$(shell git config --get user.username)
@@ -11,10 +11,10 @@ all: test
 .PHONY: protos 
 protos: ## Generats gRPC proto clients
 	protoc \
-	  --proto_path=proto proto/*.proto \
-	  --go_out=pkg/proto/v1 \
+	  --proto_path=api/v1 api/v1/*.proto \
+	  --go_out=pkg/api/v1 \
 	  --go_opt=paths=source_relative \
-	  --go-grpc_out=pkg/proto/v1 \
+	  --go-grpc_out=pkg/api/v1 \
 	  --go-grpc_opt=paths=source_relative
 
 .PHONY: certs
@@ -79,7 +79,7 @@ lint: ## Lints the entire project
 .PHONY: image
 image: tidy ## Builds and publish image 
 	docker build \
-		-f cmd/server/Dockerfile \
+		-f build/Dockerfile \
 		-t "ghcr.io/$(IMAGE_OWNER)/$(IMAGE_NAME):$(RELEASE_VERSION)" .
 	docker push "ghcr.io/$(IMAGE_OWNER)/$(IMAGE_NAME):$(RELEASE_VERSION)"
 
