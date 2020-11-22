@@ -17,12 +17,15 @@ spec:
       restartPolicy: Always
       containers:
       - name: ping
-        image: ghcr.io/mchmarny/grpc-ping:v0.0.3
+        image: ghcr.io/mchmarny/grpc-ping:v0.1.1
         ports:
         - containerPort: 50505
+        - containerPort: 8080
         env:
-        - name: ADDRESS
-          value: ":50505"
+        - name: GRPC_PORT
+          value: "50505"
+        - name: HTTP_PORT
+          value: "8080"
         - name: DEBUG
           value: "true"
       

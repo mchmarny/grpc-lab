@@ -6,8 +6,13 @@ spec:
   selector:
     app: ping
   ports:
-    - port: 50505
+    - name: grpc
+      port: 50505
       protocol: TCP
       targetPort: 50505
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
   sessionAffinity: None
   type: NodePort

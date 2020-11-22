@@ -40,7 +40,7 @@ func (s *PingService) Start(ctx context.Context) error {
 	reflection.Register(grpcServer)
 	pb.RegisterServiceServer(grpcServer, s)
 
-	log.Infof("starting gRPC server: %s", s.grpcListener.Addr().String())
+	log.Infof("starting gRPC server at: %s", s.grpcListener.Addr().String())
 	return grpcServer.Serve(s.grpcListener)
 }
 
@@ -64,7 +64,7 @@ func (s *PingService) StartHTTP(ctx context.Context, port string) error {
 		return errors.Wrap(err, "error registering HTTP handler")
 	}
 
-	log.Infof("startting REST server at %s", lis.Addr().String())
+	log.Infof("starting REST server at %s", lis.Addr().String())
 	return http.Serve(lis, mux)
 }
 

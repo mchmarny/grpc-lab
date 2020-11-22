@@ -1,6 +1,6 @@
 APP_NAME         ?=ping
 HOST_NAME        ?=thingz.io
-RELEASE_VERSION  ?=v0.0.3
+RELEASE_VERSION  ?=v0.1.1
 GRPC_PORT        ?=50505
 HTTP_PORT        ?=8080
 IMAGE_NAME       ?=grpc-ping
@@ -73,7 +73,7 @@ gping: ## Invokes ping method using grpcurl
 
 .PHONY: hping
 hping: ## Invokes ping method using curl
-	curl -X POST -i -k -d '{"id":"id1", "message":"hello"}'\
+	curl -i -k -d '{"id":"id1", "message":"hello"}'\
       -H "Content-type: application/json" \
       http://localhost:$(HTTP_PORT)/v1/ping
 
