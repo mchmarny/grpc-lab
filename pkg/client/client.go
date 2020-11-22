@@ -73,8 +73,8 @@ func (p *PingClient) Ping(ctx context.Context, msg string) (out string, count in
 	return resp.Detail, resp.MessageCount, nil
 }
 
-// Stream streams messages from the client
-func (p *PingClient) Stream(ctx context.Context, list []string) error {
+// StreamList streams messages from the client
+func (p *PingClient) StreamList(ctx context.Context, list []string) error {
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 

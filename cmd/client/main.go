@@ -66,7 +66,7 @@ func stream(ctx context.Context, c *client.PingClient, n int64) error {
 		list = append(list, fmt.Sprintf("test %d", i))
 	}
 
-	if err := c.Stream(ctx, list); err != nil {
+	if err := c.StreamList(ctx, list); err != nil {
 		return errors.Wrap(err, "error streaming")
 	}
 	return nil
