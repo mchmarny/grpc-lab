@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 )
 
 var (
+	address  = config.GetEnvVar("ADDRESS", "0.0.0.0")
 	grpcPort = config.GetEnvVar("GRPC_PORT", "50505")
 	httpPort = config.GetEnvVar("HTTP_PORT", "")
 	debug    = config.GetEnvBoolVar("DEBUG", false)
@@ -28,7 +28,7 @@ func main() {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	addr := fmt.Sprintf("0.0.0.0:%s", grpcPort)
+	addr := net.JoinHostPort(address, grpcPort)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("error creating listener on %s: %v", addr, err)
@@ -53,7 +53,8 @@ func main() {
 
 	if httpPort != "" {
 		go func() {
-			if err := srv.StartHTTP(ctx, httpPort); err != nil && err.Error() != "closed" {
+			addr := net.JoinHostPort(address, httpPort)
+			if err := srv.StartHTTP(ctx, addr); err != nil && err.Error() != "closed" {
 				log.Error("http server error")
 				exitCh <- err
 			}

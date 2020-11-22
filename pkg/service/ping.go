@@ -45,8 +45,7 @@ func (s *PingService) Start(ctx context.Context) error {
 }
 
 // StartHTTP starts the ping service as a HTTP server
-func (s *PingService) StartHTTP(ctx context.Context, port string) error {
-	addr := fmt.Sprintf("0.0.0.0:%s", port)
+func (s *PingService) StartHTTP(ctx context.Context, addr string) error {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return errors.Wrapf(err, "error creating listener on %s: %v", addr, err)

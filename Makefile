@@ -31,19 +31,26 @@ tidy: ## Updates the go modules
 
 .PHONY: test 
 test: tidy ## Tests the entire project 
-	go test -count=1 -race -covermode=atomic -coverprofile=coverage.txt \
+	go test -count=1 -race -covermode=atomic -coverprofile=cover.out \
 	  ./...
+
+.PHONY: cover 
+cover: test ## Displays test coverage in the service and service packages
+	go tool cover -html=cover.out
+
+.PHONY: debug
+debug: ## Sets up gRPC degub env vars
+	export GRPC_TRACE=all 
+	export GRPC_VERBOSITY=DEBUG 
+	export GRPC_GO_LOG_VERBOSITY_LEVEL=2 
+	export GRPC_GO_LOG_SEVERITY_LEVEL=info 
+	export DEBUG=true
 
 .PHONY: server
 server: tidy ## Starts the Ping server using gRPC protocol
-	GRPC_TRACE=all \
-	GRPC_VERBOSITY=DEBUG \
-	GRPC_GO_LOG_VERBOSITY_LEVEL=2 \
-	GRPC_GO_LOG_SEVERITY_LEVEL=info \
-	GRPC_PORT=$(GRPC_PORT) \
-	HTTP_PORT=$(HTTP_PORT) \
-	DEBUG=true \
-	go run cmd/server/main.go
+    GRPC_PORT=$(GRPC_PORT) \
+    HTTP_PORT=$(HTTP_PORT) \
+    go run cmd/server/main.go
 
 .PHONY: client 
 client: tidy ## Starts the Ping client
@@ -76,15 +83,12 @@ hping: ## Invokes ping method using curl
 
 .PHONY: spellcheck 
 spellcheck: ## Checks spelling across the entire project 
-	@command -v misspell > /dev/null 2>&1 || (cd tools && go get github.com/client9/misspell/cmd/misspell)
-	@misspell -locale="US" -error -source="text" **/*
-
-.PHONY: cover 
-cover: tidy ## Displays test coverage in the service and service packages
-	go test -coverprofile=cover.out ./service && go tool cover -html=cover.out
+	# go get github.com/client9/misspell/cmd/misspell
+	misspell -locale="US" -error -source="text" **/*
 
 .PHONY: lint 
 lint: ## Lints the entire project
+	# brew install golangci-lint
 	golangci-lint run --timeout=3m
 
 .PHONY: image
@@ -102,12 +106,7 @@ tag: ## Creates release tag
 .PHONY: clean 
 clean: ## Cleans go and generated files
 	go clean
-	rm -f certs/server.*
-
-.PHONY: pids
-pids: ## Lists processes using the app addresss
-	sudo lsof -i :$(GRPC_PORT)
-	# kill -9 <pid>
+	rm -f certs/*
 
 .PHONY: test  
 help: ## Display available commands
