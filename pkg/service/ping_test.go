@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"context"
@@ -68,13 +68,11 @@ func getTestRequest() *pb.PingRequest {
 	}
 }
 
-func getTestServer() *PingServer {
-	return &PingServer{
-		listener: bufconn.Listen(1024 * 1024),
-	}
+func getTestServer() *PingService {
+	return NewPingService(bufconn.Listen(1024 * 1024))
 }
 
-func startTestServer(ctx context.Context, t *testing.T, srv *PingServer) {
+func startTestServer(ctx context.Context, t *testing.T, srv *PingService) {
 	go func() {
 		if err := srv.Start(ctx); err != nil && err.Error() != "closed" {
 			log.Fatalf("error starting server: %v", err)
@@ -82,7 +80,7 @@ func startTestServer(ctx context.Context, t *testing.T, srv *PingServer) {
 	}()
 }
 
-func stopTestServer(t *testing.T, srv *PingServer) {
+func stopTestServer(t *testing.T, srv *PingService) {
 	assert.NotNil(t, srv)
 	srv.Close()
 }

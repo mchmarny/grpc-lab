@@ -31,7 +31,7 @@ tidy: ## Updates the go modules
 
 .PHONY: test 
 test: tidy ## Tests the entire project 
-	go test -v -count=1 -race -covermode=atomic -coverprofile=coverage.txt \
+	go test -count=1 -race -covermode=atomic -coverprofile=coverage.txt \
 	  ./...
 
 .PHONY: server 
