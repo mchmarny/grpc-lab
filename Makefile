@@ -11,11 +11,14 @@ all: test
 .PHONY: protos 
 protos: ## Generats gRPC proto clients
 	protoc \
-	  --proto_path=api/v1 api/v1/*.proto \
+	  -I./proto/google \
+	  --proto_path=proto proto/v1/*.proto \
 	  --go_out=pkg/api/v1 \
 	  --go_opt=paths=source_relative \
 	  --go-grpc_out=pkg/api/v1 \
-	  --go-grpc_opt=paths=source_relative
+	  --go-grpc_opt=paths=source_relative \
+	  --grpc-gateway_out=pkg/api/v1 \
+	  --openapiv2_out=:swagger
 
 .PHONY: certs
 certs: ## Create wildcard TLS certificates using letsencrypt for k8s ingress
