@@ -56,11 +56,11 @@ func (s *PingService) StartHTTP(ctx context.Context, port string) error {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	cancelCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	endpoint := s.grpcListener.Addr().String()
-	if err := pb.RegisterServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
+	if err := pb.RegisterServiceHandlerFromEndpoint(cancelCtx, mux, endpoint, opts); err != nil {
 		return errors.Wrap(err, "error registering HTTP handler")
 	}
 

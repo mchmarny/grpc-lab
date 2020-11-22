@@ -13,11 +13,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	httpProtocol = "http"
-	grpcProtocol = "grpc"
-)
-
 var (
 	grpcPort = config.GetEnvVar("GRPC_PORT", "50505")
 	httpPort = config.GetEnvVar("HTTP_PORT", "")
@@ -78,7 +73,6 @@ func main() {
 				break
 			}
 			os.Exit(0)
-		default:
 		}
 	}
 }

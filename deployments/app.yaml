@@ -17,7 +17,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: ping
-        image: ghcr.io/mchmarny/grpc-ping:v0.1.1
+        image: ghcr.io/mchmarny/grpc-ping:v0.2.1
         ports:
         - containerPort: 50505
         - containerPort: 8080
