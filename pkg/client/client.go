@@ -23,7 +23,7 @@ func NewPingClient(ctx context.Context, target, clientID string) (client *PingCl
 	log.Infof("dialing: %s...)", target)
 	conn, err := grpc.Dial(target, opt)
 	if err != nil {
-		return nil, errors.Wrap(err, "error dialling")
+		return nil, errors.Wrap(err, "error dialing")
 	}
 
 	client = &PingClient{

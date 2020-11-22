@@ -6,7 +6,7 @@ IMAGE_NAME       ?=grpc-ping
 IMAGE_OWNER      ?=$(shell git config --get user.username)
 
 .PHONY: all 
-all: test
+all: help
 
 .PHONY: protos 
 protos: ## Generats gRPC proto clients
@@ -25,7 +25,7 @@ certs: ## Create wildcard TLS certificates using letsencrypt for k8s ingress
 	sudo chmod 644 certs/*.pem
 
 .PHONY: tidy 
-tidy: ## Updates the go modules
+tidy: ## Updates go modules and vendors deps
 	go mod tidy
 	go mod vendor
 
@@ -35,7 +35,7 @@ test: tidy ## Tests the entire project
 	  ./...
 
 .PHONY: cover 
-cover: test ## Displays test coverage in the service and service packages
+cover: test ## Runs test and displays test coverage 
 	go tool cover -html=cover.out
 
 .PHONY: debug
@@ -60,7 +60,7 @@ client: tidy ## Starts the Ping client
 	  --debug=true
 
 .PHONY: stream 
-stream: tidy ## Starts the Ping client
+stream: tidy ## Runs Ping client in streaming mode
 	go run cmd/client/main.go \
 	  --address=localhost:$(GRPC_PORT) \
 	  --client="stream-client" \
@@ -81,8 +81,8 @@ hping: ## Invokes ping method using curl
       -H "Content-type: application/json" \
       http://localhost:$(HTTP_PORT)/v1/ping
 
-.PHONY: spellcheck 
-spellcheck: ## Checks spelling across the entire project 
+.PHONY: spell 
+spell: ## Checks spelling across the entire project 
 	# go get github.com/client9/misspell/cmd/misspell
 	misspell -locale="US" -error -source="text" **/*
 

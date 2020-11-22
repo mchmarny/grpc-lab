@@ -40,7 +40,7 @@ func prompt(ctx context.Context, c *client.PingClient) error {
 			}
 		}
 		if strings.TrimSpace(msg) == "" {
-			// exit promots
+			// exit
 			return nil
 		}
 
