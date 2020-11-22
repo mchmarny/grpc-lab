@@ -1,4 +1,3 @@
-APP_NAME         ?=ping
 HOST_NAME        ?=thingz.io
 RELEASE_VERSION  ?=v0.1.1
 GRPC_PORT        ?=50505
@@ -52,14 +51,14 @@ server: tidy ## Starts the Ping server using gRPC protocol
 client: tidy ## Starts the Ping client
 	go run cmd/client/main.go \
 	  --address=localhost:$(GRPC_PORT) \
-	  --client="${APP_NAME}-client" \
+	  --client="ping-client" \
 	  --debug=true
 
 .PHONY: stream 
 stream: tidy ## Starts the Ping client
 	go run cmd/client/main.go \
 	  --address=$(GRPC_PORT) \
-	  --client="${APP_NAME}-client" \
+	  --client="stream-client" \
 	  --stream=100 \
 	  --debug=true
 
@@ -67,7 +66,7 @@ stream: tidy ## Starts the Ping client
 gping: ## Invokes ping method using grpcurl
 	grpcurl -plaintext \
 	  -d '{"id":"id1", "message":"hello"}' \
-	  -authority="${APP_NAME}.${HOST_NAME}" \
+	  -authority="ping.${HOST_NAME}" \
 	  localhost:$(GRPC_PORT) \
 	  io.thingz.grpc.v1.Service/Ping
 

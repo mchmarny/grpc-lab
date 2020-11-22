@@ -1,18 +1,27 @@
 # grpc-lab
 
+Simple gRPC service with HTTP extension based on a proto API definition and deployment to Kubernetes. 
+
 ## setup
 
+Export a couple of environment variables to make this readme reproducible:
+
+> Choose domain for which you can control. When setting up ingress, you will have to create DNS entry. 
+
 ```shell
+export DOMAIN="thingz.io"
 export SPACE="grpc-lab"
 ```
 
-Namespace:
+Create namespace:
 
 ```shell
 kubectl create ns $SPACE
 ```
 
 ## deployment 
+
+> All commands assume you are executing from the root of the repo
 
 Apply deployment:
 
@@ -52,12 +61,25 @@ ping   ClusterIP   10.0.31.13   <none>        50505/TCP   6s
 
 ## ingress 
 
-TLS Certs secret 
+Create TLS certificates:
+
+```shell
+certbot certonly --manual \
+                 --preferred-challenges dns \
+                 -d "*.${DOMAIN}" \
+                 --config-dir ./certs \
+                 --logs-dir ./certs \
+                 --work-dir ./certs
+```
+
+> When promoted to configure DNS TXT record, you can check on the propagation status by digging `dig "_acme-challenge.${DOMAIN}" TXT`
+
+Once the certs were generated, create the TLS secret:
 
 ```shell
 kubectl create secret tls tls-secret \
-		--key certs/ingress-key.pem \
-		--cert certs/ingress-cert.pem \
+		--key "live/${DOMAIN}/privkey.pem" \
+		--cert "live/${DOMAIN}/fullchain.pem" \
 		-n $SPACE 
 ```
 
@@ -74,7 +96,7 @@ Watch the ingresses until the `ADDRESS` column gets populated:
 kubectl get ingress -n $SPACE -w
 ```
 
-Now go to the DNS server and create an `A` entry for the value in the `HOSTS` column. You can test when this gets propagated using `dig gping.thingz.io` for example, or whatever the `HOST` value is.
+Now go to the DNS server and create an `A` entry for the `*` and the IP value in the `HOSTS` column. You can test when this gets propagated using `dig gping.thingz.io` for example, or whatever the `HOST` value is.
 
 ## test
 
