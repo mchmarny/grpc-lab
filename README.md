@@ -34,12 +34,16 @@ Check pod status:
 
 ```shell
 kubectl get pods -n $SPACE
+```
 
+Response should look something like this:
+
+```shell
 NAME                    READY   STATUS    RESTARTS   AGE
 ping-554f558fbd-h96rf   1/1     Running   0          15s
 ```
 
-Check server logs:
+You can also check server logs:
 
 ```shell
 kubectl logs -l app=ping -n $SPACE 
@@ -53,11 +57,14 @@ kubectl apply -f deployments/service.yaml -n $SPACE
 
 ```shell
 kubectl get service -n $SPACE
+```
 
+Response should look something like this: 
+
+```shell
 NAME   TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)     AGE
 ping   ClusterIP   10.0.31.13   <none>        50505/TCP   6s
 ```
-
 
 ## ingress 
 
