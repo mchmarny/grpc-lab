@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -12,9 +13,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	httpProtocol = "http"
+	grpcProtocol = "grpc"
+)
+
 var (
-	address = config.GetEnvVar("ADDRESS", ":50505")
-	debug   = config.GetEnvBoolVar("DEBUG", false)
+	grpcPort = config.GetEnvVar("GRPC_PORT", "50505")
+	httpPort = config.GetEnvVar("HTTP_PORT", "")
+	debug    = config.GetEnvBoolVar("DEBUG", false)
 )
 
 func main() {
@@ -26,10 +33,12 @@ func main() {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	lis, err := net.Listen("tcp", address)
+	addr := fmt.Sprintf("0.0.0.0:%s", grpcPort)
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatalf("error creating listener on %s: %v", address, err)
+		log.Fatalf("error creating listener on %s: %v", addr, err)
 	}
+	defer lis.Close()
 
 	srv := service.NewPingService(lis)
 
@@ -37,14 +46,39 @@ func main() {
 	signal.Notify(sigCh, os.Interrupt)
 	ctx, cancel := context.WithCancel(context.Background())
 
+	exitCh := make(chan error, 1)
+
 	go func() {
-		<-sigCh
-		cancel()
-		srv.Close()
-		os.Exit(0)
+		if err := srv.Start(ctx); err != nil && err.Error() != "closed" {
+			log.Error("grpc server error")
+			exitCh <- err
+		}
+		exitCh <- nil
 	}()
 
-	if err := srv.Start(ctx); err != nil && err.Error() != "closed" {
-		log.Fatal(err)
+	if httpPort != "" {
+		go func() {
+			if err := srv.StartHTTP(ctx, httpPort); err != nil && err.Error() != "closed" {
+				log.Error("http server error")
+				exitCh <- err
+			}
+			exitCh <- nil
+		}()
+	}
+
+	for {
+		select {
+		case <-sigCh:
+			cancel()
+			os.Exit(0)
+		case err := <-exitCh:
+			if err != nil {
+				log.Error(err)
+				os.Exit(1)
+				break
+			}
+			os.Exit(0)
+		default:
+		}
 	}
 }

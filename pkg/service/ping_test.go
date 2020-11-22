@@ -14,10 +14,8 @@ import (
 
 func TestPing(t *testing.T) {
 	ctx := context.Background()
-	srv := getTestServer()
+	srv := startTestServer(ctx, t)
 	assert.NotNil(t, srv)
-	startTestServer(ctx, t, srv)
-	defer stopTestServer(t, srv)
 
 	t.Run("ping sans args", func(t *testing.T) {
 		if _, err := srv.Ping(ctx, nil); err == nil {
@@ -68,19 +66,16 @@ func getTestRequest() *pb.PingRequest {
 	}
 }
 
-func getTestServer() *PingService {
-	return NewPingService(bufconn.Listen(1024 * 1024))
-}
+func startTestServer(ctx context.Context, t *testing.T) *PingService {
+	list := bufconn.Listen(1024 * 1024)
+	defer list.Close()
+	srv := NewPingService(list)
 
-func startTestServer(ctx context.Context, t *testing.T, srv *PingService) {
 	go func() {
 		if err := srv.Start(ctx); err != nil && err.Error() != "closed" {
 			log.Fatalf("error starting server: %v", err)
 		}
 	}()
-}
 
-func stopTestServer(t *testing.T, srv *PingService) {
-	assert.NotNil(t, srv)
-	srv.Close()
+	return srv
 }

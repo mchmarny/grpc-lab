@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	pb "github.com/mchmarny/grpc-lab/pkg/api/v1"
 	"github.com/mchmarny/grpc-lab/pkg/format"
 	"github.com/pkg/errors"
@@ -16,9 +19,9 @@ import (
 )
 
 // NewPingService creates an instance of the PingService
-func NewPingService(lis net.Listener) *PingService {
+func NewPingService(list net.Listener) *PingService {
 	return &PingService{
-		listener: lis,
+		grpcListener: list,
 	}
 }
 
@@ -27,25 +30,42 @@ type PingService struct {
 	pb.UnimplementedServiceServer
 	messageCount int64
 	lock         sync.Mutex
-	listener     net.Listener
+	grpcListener net.Listener
 }
 
-// Start starts the ping server
+// Start starts the ping service as a gRPC server
 func (s *PingService) Start(ctx context.Context) error {
 	opts := []grpc.ServerOption{}
 	grpcServer := grpc.NewServer(opts...)
 	reflection.Register(grpcServer)
 	pb.RegisterServiceServer(grpcServer, s)
 
-	log.Infof("starting gRPC server: %s", s.listener.Addr().String())
-	return grpcServer.Serve(s.listener)
+	log.Infof("starting gRPC server: %s", s.grpcListener.Addr().String())
+	return grpcServer.Serve(s.grpcListener)
 }
 
-// Close closes ping server
-func (s *PingService) Close() {
-	if err := s.listener.Close(); err != nil {
-		log.Warnf("error closing ping server: %v", err)
+// StartHTTP starts the ping service as a HTTP server
+func (s *PingService) StartHTTP(ctx context.Context, port string) error {
+	addr := fmt.Sprintf("0.0.0.0:%s", port)
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		return errors.Wrapf(err, "error creating listener on %s: %v", addr, err)
 	}
+	defer lis.Close()
+
+	mux := runtime.NewServeMux()
+	opts := []grpc.DialOption{grpc.WithInsecure()}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	endpoint := s.grpcListener.Addr().String()
+	if err := pb.RegisterServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
+		return errors.Wrap(err, "error registering HTTP handler")
+	}
+
+	log.Infof("startting REST server at %s", lis.Addr().String())
+	return http.Serve(lis, mux)
 }
 
 // Stream stream messages
@@ -98,7 +118,7 @@ func (s *PingService) processReq(req *pb.PingRequest) *pb.PingResponse {
 		Count:    s.messageCount,
 		Created:  time.Now().UTC().UnixNano(),
 		Metadata: map[string]string{
-			"address": s.listener.Addr().String(),
+			"address": s.grpcListener.Addr().String(),
 		},
 	}
 }
