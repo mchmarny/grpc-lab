@@ -6,6 +6,7 @@ option go_package = ".;v1";
 
 import "google/api/annotations.proto";
 
+
 // Service provides APIs to user application to access the service.
 service Service {
   // Ping method on the service.
@@ -26,35 +27,43 @@ service Service {
 
 }
 
-// PingRequest represents the request message for Ping invocation.
-message PingRequest {
-  // Required. Represents request ID
+message Content {
+  // Required. Message ID
   string id = 1;
 
-  // Required. Represents message content 
-  string message = 2;
+  // Required. Message content 
+  bytes data = 2;
 
-  // Optional. Represents message metadata
+  // Optional. Message metadata
   map<string,string> metadata = 3;
+}
+
+
+// PingRequest represents the request message for Ping invocation.
+message PingRequest {
+  // Required. Represents ping content
+  Content content = 1;
+
+  // Represents epoch based time when the message was sent
+  int64 sent = 2;
 }
 
 // GetStateRequest is the message to get key-value states from specific state store.
 message PingResponse {
+  enum ResultType {
+    UNKNOWN = 0;
+    Success = 1;
+    Eror = 2;
+  }
   // Represents request ID
-  string id = 1;
-
-  // Represents message content 
-  string message = 2;
-
-  // Represents message reversed
-  string reversed = 3;
+  string messageID = 1;
 
   // Represents the count of messages
-  int64 count = 4;
+  int64 messageCount = 2;
 
   // Represents the count of messages
-  int64 created = 5;
+  int64 processed = 3;
 
-  // Optional. Represents message metadata
-  map<string,string> metadata = 6;
+  // Represents processing detail
+  string Detail = 4;
 }

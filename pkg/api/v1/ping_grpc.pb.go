@@ -166,5 +166,5 @@ var _Service_serviceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "ping.proto",
+	Metadata: "v1/ping.proto",
 }

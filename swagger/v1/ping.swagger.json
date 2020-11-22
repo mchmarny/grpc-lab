@@ -119,23 +119,38 @@
         }
       }
     },
-    "v1PingRequest": {
+    "v1Content": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string",
-          "title": "Required. Represents request ID"
+          "title": "Required. Message ID"
         },
-        "message": {
+        "data": {
           "type": "string",
-          "title": "Required. Represents message content"
+          "format": "byte",
+          "title": "Required. Message content"
         },
         "metadata": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
           },
-          "title": "Optional. Represents message metadata"
+          "title": "Optional. Message metadata"
+        }
+      }
+    },
+    "v1PingRequest": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "$ref": "#/definitions/v1Content",
+          "title": "Required. Represents ping content"
+        },
+        "sent": {
+          "type": "string",
+          "format": "int64",
+          "title": "Represents epoch based time when the message was sent"
         }
       },
       "description": "PingRequest represents the request message for Ping invocation."
@@ -143,34 +158,23 @@
     "v1PingResponse": {
       "type": "object",
       "properties": {
-        "id": {
+        "messageID": {
           "type": "string",
           "title": "Represents request ID"
         },
-        "message": {
-          "type": "string",
-          "title": "Represents message content"
-        },
-        "reversed": {
-          "type": "string",
-          "title": "Represents message reversed"
-        },
-        "count": {
+        "messageCount": {
           "type": "string",
           "format": "int64",
           "title": "Represents the count of messages"
         },
-        "created": {
+        "processed": {
           "type": "string",
           "format": "int64",
           "title": "Represents the count of messages"
         },
-        "metadata": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "title": "Optional. Represents message metadata"
+        "Detail": {
+          "type": "string",
+          "title": "Represents processing detail"
         }
       },
       "description": "GetStateRequest is the message to get key-value states from specific state store."

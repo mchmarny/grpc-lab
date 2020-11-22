@@ -12,11 +12,9 @@ all: test
 protos: ## Generats gRPC proto clients
 	protoc \
 	  --proto_path=proto proto/v1/*.proto \
-	  --go_out=pkg/api/v1 \
-	  --go_opt=paths=source_relative \
-	  --go-grpc_out=pkg/api/v1 \
-	  --go-grpc_opt=paths=source_relative \
-	  --grpc-gateway_out=pkg/api/v1 \
+	  --go_out=:pkg/api/v1 \
+	  --go-grpc_out=:pkg/api/v1 \
+	  --grpc-gateway_out=:pkg/api/v1 \
 	  --openapiv2_out=:swagger
 
 .PHONY: certs
@@ -57,7 +55,7 @@ client: tidy ## Starts the Ping client
 .PHONY: stream 
 stream: tidy ## Starts the Ping client
 	go run cmd/client/main.go \
-	  --address=$(GRPC_PORT) \
+	  --address=localhost:$(GRPC_PORT) \
 	  --client="stream-client" \
 	  --stream=100 \
 	  --debug=true

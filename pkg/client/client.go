@@ -46,12 +46,15 @@ type PingClient struct {
 // MakeRequest creates a request from message
 func (p *PingClient) MakeRequest(msg string, index int) *pb.PingRequest {
 	return &pb.PingRequest{
-		Id:      id.NewID(),
-		Message: msg,
-		Metadata: map[string]string{
-			"client-id":     p.id,
-			"created-on":    time.Now().UTC().Format(time.RFC3339),
-			"message-index": fmt.Sprintf("%d", index),
+		Sent: time.Now().UTC().UnixNano(),
+		Content: &pb.Content{
+			Id:   id.NewID(),
+			Data: []byte(msg),
+			Metadata: map[string]string{
+				"client-id":     p.id,
+				"created-on":    time.Now().UTC().Format(time.RFC3339),
+				"message-index": fmt.Sprintf("%d", index),
+			},
 		},
 	}
 }
@@ -67,7 +70,7 @@ func (p *PingClient) Ping(ctx context.Context, msg string) (out string, count in
 	if err != nil {
 		return "", 0, errors.Wrap(err, "error on ping")
 	}
-	return resp.Reversed, resp.Count, nil
+	return resp.Detail, resp.MessageCount, nil
 }
 
 // Stream streams messages from the client

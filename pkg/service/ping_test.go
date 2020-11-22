@@ -32,8 +32,7 @@ func TestPing(t *testing.T) {
 			t.Errorf("error on ping: %v", err)
 		}
 		assert.NotNil(t, resp)
-		assert.Exactly(t, "test", resp.Message)
-		assert.Exactly(t, "tset", resp.Reversed)
+		assert.Exactly(t, req.Content.Id, resp.MessageID)
 	})
 	t.Run("ping count", func(t *testing.T) {
 		req := getTestRequest()
@@ -51,17 +50,19 @@ func TestPing(t *testing.T) {
 			t.Errorf("error on ping: %v", err)
 		}
 		assert.NotNil(t, resp2)
-		assert.True(t, resp2.Count > resp1.Count)
+		assert.True(t, resp2.MessageCount > resp1.MessageCount)
 	})
 }
 
 func getTestRequest() *pb.PingRequest {
 	return &pb.PingRequest{
-		Id:      "test-id",
-		Message: "test",
-		Metadata: map[string]string{
-			"client-id":  "test",
-			"created-on": time.Now().UTC().Format(time.RFC3339),
+		Sent: time.Now().UTC().UnixNano(),
+		Content: &pb.Content{
+			Id:   "test-id",
+			Data: []byte("test"),
+			Metadata: map[string]string{
+				"client-id": "test",
+			},
 		},
 	}
 }
