@@ -8,18 +8,19 @@
 # Test binary, build with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Output of the go coverage tool
 *.out
+coverage.txt
+
+# Mac crap 
 .DS_Store
 
-# vendor 
+# vendored deps
 vendor
 
 # docs 
 golang.org
-coverage.txt
 
 # certs
 certs
-out
 *.pem
