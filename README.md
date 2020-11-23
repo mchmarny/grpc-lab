@@ -1,6 +1,6 @@
 # grpc-lab
 
-Simple gRPC service with HTTP extension based on a proto API definition. Includes deployment to Kubernetes and ingress configuration with TLS certificates. 
+Simple gRPC service with HTTP extension based on a proto API definition. Includes deployment to Kubernetes and ingress configuration with TLS certificate and custom domain.  
 
 ## setup
 
