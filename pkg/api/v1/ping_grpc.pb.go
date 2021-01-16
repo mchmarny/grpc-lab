@@ -11,6 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // ServiceClient is the client API for Service service.
@@ -41,7 +42,7 @@ func (c *serviceClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.
 }
 
 func (c *serviceClient) Stream(ctx context.Context, opts ...grpc.CallOption) (Service_StreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Service_serviceDesc.Streams[0], "/io.thingz.grpc.v1.Service/Stream", opts...)
+	stream, err := c.cc.NewStream(ctx, &Service_ServiceDesc.Streams[0], "/io.thingz.grpc.v1.Service/Stream", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +103,7 @@ type UnsafeServiceServer interface {
 }
 
 func RegisterServiceServer(s grpc.ServiceRegistrar, srv ServiceServer) {
-	s.RegisterService(&_Service_serviceDesc, srv)
+	s.RegisterService(&Service_ServiceDesc, srv)
 }
 
 func _Service_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -149,7 +150,10 @@ func (x *serviceStreamServer) Recv() (*PingRequest, error) {
 	return m, nil
 }
 
-var _Service_serviceDesc = grpc.ServiceDesc{
+// Service_ServiceDesc is the grpc.ServiceDesc for Service service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Service_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "io.thingz.grpc.v1.Service",
 	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{

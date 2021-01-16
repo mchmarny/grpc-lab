@@ -4,6 +4,11 @@
     "title": "v1/ping.proto",
     "version": "version not set"
   },
+  "tags": [
+    {
+      "name": "Service"
+    }
+  ],
   "consumes": [
     "application/json"
   ],

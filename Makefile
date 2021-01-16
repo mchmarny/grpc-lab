@@ -8,6 +8,14 @@ IMAGE_OWNER      ?=$(shell git config --get user.username)
 .PHONY: all 
 all: help
 
+.PHONY: init 
+init: ## Setup deps
+	go install \
+	  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway \
+	  github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2 \
+	  google.golang.org/protobuf/cmd/protoc-gen-go \
+	  google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
 .PHONY: protos 
 protos: ## Generats gRPC proto clients
 	protoc \
@@ -47,7 +55,7 @@ debug: ## Sets up gRPC degub env vars
 	export DEBUG=true
 
 .PHONY: server
-server: tidy ## Starts the Ping server using gRPC protocol
+server: tidy debug ## Starts the Ping server using gRPC protocol
     GRPC_PORT=$(GRPC_PORT) \
     HTTP_PORT=$(HTTP_PORT) \
     go run cmd/server/main.go
