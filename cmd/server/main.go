@@ -4,12 +4,14 @@ import (
 	"context"
 	"flag"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 
 	"github.com/mchmarny/grpc-lab/pkg/config"
 	"github.com/mchmarny/grpc-lab/pkg/service"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -36,15 +38,13 @@ func main() {
 	defer lis.Close()
 
 	srv := service.NewPingService(lis)
-
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt)
 	ctx, cancel := context.WithCancel(context.Background())
-
 	exitCh := make(chan error, 1)
 
 	go func() {
-		if err := srv.Start(ctx); err != nil && err.Error() != "closed" {
+		if err := srv.Start(ctx); err != nil && err != grpc.ErrServerStopped {
 			log.Error("grpc server error")
 			exitCh <- err
 		}
@@ -54,7 +54,7 @@ func main() {
 	if httpPort != "" {
 		go func() {
 			addr := net.JoinHostPort(address, httpPort)
-			if err := srv.StartHTTP(ctx, addr); err != nil && err.Error() != "closed" {
+			if err := srv.StartHTTP(ctx, addr); err != nil && err != http.ErrServerClosed {
 				log.Error("http server error")
 				exitCh <- err
 			}
@@ -66,14 +66,12 @@ func main() {
 		select {
 		case <-sigCh:
 			cancel()
-			os.Exit(0)
+			return
 		case err := <-exitCh:
 			if err != nil {
 				log.Error(err)
-				os.Exit(1)
-				break
 			}
-			os.Exit(0)
+			return
 		}
 	}
 }

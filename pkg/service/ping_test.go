@@ -14,7 +14,7 @@ import (
 
 func TestPing(t *testing.T) {
 	ctx := context.Background()
-	srv := startTestServer(ctx, t)
+	srv := startTestServer(ctx)
 	assert.NotNil(t, srv)
 
 	t.Run("ping sans args", func(t *testing.T) {
@@ -67,7 +67,7 @@ func getTestRequest() *pb.PingRequest {
 	}
 }
 
-func startTestServer(ctx context.Context, t *testing.T) *PingService {
+func startTestServer(ctx context.Context) *PingService {
 	list := bufconn.Listen(1024 * 1024)
 	defer list.Close()
 	srv := NewPingService(list)

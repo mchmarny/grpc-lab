@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package io.thingz.grpc.v1;
 
-option go_package = ".;v1";
+option go_package = "github.com/mchmarny/grpc-lab/v1";
 
 import "google/api/annotations.proto";
 

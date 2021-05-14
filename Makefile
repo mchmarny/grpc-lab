@@ -1,9 +1,9 @@
 HOST_NAME        ?=thingz.io
-RELEASE_VERSION  ?=v0.2.1
+RELEASE_VERSION  ?=v0.2.2
 GRPC_PORT        ?=50505
 HTTP_PORT        ?=8080
 IMAGE_NAME       ?=grpc-ping
-IMAGE_OWNER      ?=$(shell git config --get user.username)
+KO_DOCKER_REPO   ?=ghcr.io/mchmarny
 
 .PHONY: all 
 all: help
@@ -19,11 +19,15 @@ init: ## Setup deps
 .PHONY: protos 
 protos: ## Generats gRPC proto clients
 	protoc \
-	  --proto_path=proto proto/v1/*.proto \
-	  --go_out=:pkg/api/v1 \
-	  --go-grpc_out=:pkg/api/v1 \
-	  --grpc-gateway_out=:pkg/api/v1 \
-	  --openapiv2_out=:swagger
+		--proto_path=proto \
+		--go_out=pkg/api \
+		--go_opt=paths=source_relative \
+		--go-grpc_out=pkg/api \
+		--go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=pkg/api \
+		--grpc-gateway_opt=paths=source_relative \
+		--openapiv2_out=swagger \
+		proto/v1/ping.proto
 
 .PHONY: certs
 certs: ## Create wildcard TLS certificates using letsencrypt for k8s ingress
@@ -46,19 +50,16 @@ test: tidy ## Tests the entire project
 cover: test ## Runs test and displays test coverage 
 	go tool cover -html=cover.out
 
-.PHONY: debug
-debug: ## Sets up gRPC degub env vars
-	export GRPC_TRACE=all 
-	export GRPC_VERBOSITY=DEBUG 
-	export GRPC_GO_LOG_VERBOSITY_LEVEL=2 
-	export GRPC_GO_LOG_SEVERITY_LEVEL=info 
-	export DEBUG=true
-
 .PHONY: server
-server: tidy debug ## Starts the Ping server using gRPC protocol
+server: tidy ## Starts the Ping server using gRPC protocol
+	GRPC_TRACE=all \
+	GRPC_VERBOSITY=DEBUG \
+	GRPC_GO_LOG_VERBOSITY_LEVEL=2 \
+	GRPC_GO_LOG_SEVERITY_LEVEL=info \
+	DEBUG=true \
     GRPC_PORT=$(GRPC_PORT) \
     HTTP_PORT=$(HTTP_PORT) \
-    go run cmd/server/main.go
+    	go run cmd/server/main.go
 
 .PHONY: client 
 client: tidy ## Starts the Ping client
@@ -95,16 +96,14 @@ spell: ## Checks spelling across the entire project
 	misspell -locale="US" -error -source="text" **/*
 
 .PHONY: lint 
-lint: ## Lints the entire project
-	# brew install golangci-lint
-	golangci-lint run --timeout=3m
+lint: ## Lints the entire project 
+	golangci-lint -c .golangci.yaml run --timeout=3m
 
 .PHONY: image
-image: tidy ## Builds and publish image 
-	docker build \
-		-f build/Dockerfile \
-		-t "ghcr.io/$(IMAGE_OWNER)/$(IMAGE_NAME):$(RELEASE_VERSION)" .
-	docker push "ghcr.io/$(IMAGE_OWNER)/$(IMAGE_NAME):$(RELEASE_VERSION)"
+image: tidy ## Builds and publish image using ko
+	KO_DOCKER_REPO=$(KO_DOCKER_REPO)/$(IMAGE_NAME) \
+	GOFLAGS="-ldflags=-X=main.version=$(RELEASE_VERSION)" \
+		ko publish ./cmd/server --bare --tags $(RELEASE_VERSION),latest
 
 .PHONY: tag 
 tag: ## Creates release tag 

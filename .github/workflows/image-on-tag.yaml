@@ -1,17 +1,14 @@
-name: PRB Test
+name: image on tag
 
-on:
+on:  
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
 
   build:
-    name: Test and Lint on Push
+    name: Create Release
     runs-on: ubuntu-latest
     steps:
 
@@ -44,5 +41,20 @@ jobs:
       run: |
         make test
 
+    - name: Variables
+      run: |
+        echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        echo $(date -u +"BUILD_TIME=%Y-%m-%dT%T-UTC") >> $GITHUB_ENV
 
-    
+    - name: Info
+      run: |
+        echo "::debug::RELEASE_VERSION=${{ env.RELEASE_VERSION }}"
+
+    - name: Install Ko
+      uses: imjasonh/setup-ko@v0.4
+
+    - name: Publish Image
+      run: |
+        KO_DOCKER_REPO=ghcr.io/$GITHUB_REPOSITORY \
+          ko publish cmd/server --bare --tags ${{ env.RELEASE_VERSION }},latest
+        
