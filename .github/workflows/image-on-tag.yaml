@@ -1,4 +1,4 @@
-name: image on tag
+name: IMG on Tag
 
 on:  
   push:
@@ -56,5 +56,5 @@ jobs:
     - name: Publish Image
       run: |
         KO_DOCKER_REPO=ghcr.io/$GITHUB_REPOSITORY \
-          ko publish cmd/server --bare --tags ${{ env.RELEASE_VERSION }},latest
+          ko publish ./cmd/server/ --bare --tags ${{ env.RELEASE_VERSION }},latest
         

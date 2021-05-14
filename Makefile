@@ -1,5 +1,5 @@
 HOST_NAME        ?=thingz.io
-RELEASE_VERSION  ?=v0.2.2
+RELEASE_VERSION  ?=v0.2.3
 GRPC_PORT        ?=50505
 HTTP_PORT        ?=8080
 IMAGE_NAME       ?=grpc-ping
